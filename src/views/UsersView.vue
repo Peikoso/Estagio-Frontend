@@ -8,11 +8,33 @@
       <button @click="novoUsuarioModal = true">Novo Usuário</button>
     </div>
     <div class="view-container">
-      <div>
+      <div class="filtro-container">
         <label class="filtro-label" for="filtro">Filtrar Nome</label>
         <input type="text" id="filtro" v-model="filtroNome" placeholder="Digite o nome do usuário">
         <label class="filtro-label" for="filtro">Filtrar Matricula</label>
         <input type="text" id="filtro" v-model="filtroMatricula" placeholder="Digite a matrícula">
+        <label class="filtro-label" for="filtro">Filtrar Role</label>
+        <select id="filtroRole" v-model="filtroRole">
+          <option :value="null" selected>Todos</option>
+          <option v-for="(role, index) in roles" :key="index" :value="role.id">{{ role.name }}</option>
+        </select>
+        <label class="filtro-label" for="filtro">Filtrar Profile</label>
+        <select id="filtroProfile" v-model="filtroProfile">
+          <option :value="null" selected>Todos</option>
+          <option value="admin">Admin</option>
+          <option value="operator">Operator</option>
+          <option value="viewer">Viewer</option>
+        </select>
+
+        <span class="filtro-label">Pendente</span>
+        <label class="switch">
+          <input
+            type="checkbox"
+            v-model="filtrarPendente"
+          />
+          <span class="slider"></span>
+        </label>
+
       </div>
       <div class="table-responsive">
         <table>
@@ -28,25 +50,25 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in users.slice(pagInicio, pagFim)" :key="user.uid">
+            <tr v-for="user in users" :key="user.id">
               <td data-label="">
                 <div class="avatar-container" style="height: 50px; width: 50px; margin: 0;">
                   <img :src="user.foto || avatarDefault" class="foto-perfil" />
                 </div>
               </td>
-              <td data-label="Nome">{{ user.nome }}</td>
+              <td data-label="Nome">{{ user.name }}</td>
               <td data-label="Email">{{ user.email }}</td>
               <td data-label="Matricula">{{ user.matricula }}</td>
               <td data-label="Roles">
                 <span
                   v-for="(role, index) in user.roles" :key="index"
-                  :style="{ backgroundColor: getRoleColor(role) }"
+                  :style="{ backgroundColor: role.color }"
                   class="role-badge"
                 >
-                  {{ role }}
+                  {{ role.name }}
                 </span>
               </td>
-              <td data-label="Perfil">{{ user.perfil }}</td>
+              <td data-label="Perfil">{{ user.profile }}</td>
               <td class="actions" data-label="Ações">
                 <button v-if="!user.pending" @click="editarUser(user)">Editar</button>
                 <button v-if="!user.pending" @click="deleteUser(user)">Deletar</button>
@@ -62,6 +84,7 @@
         </div>
       </div>
     </div>
+
     <div class="modal" v-if="novoUsuarioModal">
       <div class="modal-content">
         <button class="close-btn" @click="novoUsuarioModal = false; modoEdicao = false; this.limparForm(); this.getAllUsers()">&times;</button>
@@ -69,33 +92,30 @@
           <label for="matricula">Matricula</label>
           <input type="text" id="matricula" placeholder="Ex.: 203102" v-model="user.matricula">
 
-          <label for="nome">Nome</label>
-          <input type="text" id="nome" placeholder="Ex.: João Martins" v-model="user.nome">
+          <label for="name">Nome</label>
+          <input type="text" id="name" placeholder="Ex.: João Martins" v-model="user.name">
 
           <label for="email">Email</label>
-          <input type="email" id="email" placeholder="Ex.: user@example.com" v-model="user.email" :disabled="modoEdicao">
-
-          <label for="telefone">Telefone</label>
-          <input type="number" id="telefone" placeholder="Ex.: 11912345678" v-model="user.telefone">
+          <input type="email" id="email" placeholder="Ex.: user@example.com" v-model="user.email">
 
           <label for="roles">Roles</label>
           <div>
             <span
             v-for="(role, index) in user.roles" :key="index"
-            :style="{ backgroundColor: getRoleColor(role) }"
+            :style="{ backgroundColor: role.color }"
             class="role-badge">
-              {{ role }}
+              {{ role.name }}
               <button style="all: unset; cursor: pointer;" @click="removerRole(index)">&times;</button>
             </span>
           </div>
           <select id="roles" v-model="selectedRole">
             <option value="" disabled selected>Selecione uma role</option>
-            <option v-for="(role, index) in roles" :key="index" :value="role">{{ role.nome }}</option>
+            <option v-for="(role, index) in roles" :key="index" :value="role">{{ role.name }}</option>
           </select>
           <button @click.prevent="adicionarRole">Adicionar Role</button>
 
           <label for="perfil">Perfil</label>
-          <select id="perfil" v-model="user.perfil">
+          <select id="perfil" v-model="user.profile">
             <option value="admin">Admin</option>
             <option value="operator">Operator</option>
             <option value="viewer">Viewer</option>
@@ -120,24 +140,23 @@
 </template>
 
 <script>
-import { db } from '../firebaseConfig.js'
-import { doc, setDoc, onSnapshot, collection, getDocs, where, query, deleteDoc } from "firebase/firestore";
+import api from '@/services/api';
 import avatarDefault from '@/assets/icons/avatar-default.svg';
+import { getToken } from '@/services/token.js';
 
 export default {
   name: 'UsersView',
   data() {
     return {
       user: {
-        uid: '',
-        nome: '',
-        email: '',
-        telefone: '',
+        id: '',
+        firebaseId: '',
+        name: '',
         matricula: '',
-        perfil: 'viewer',
+        email: '',
+        profile: 'viewer',
         roles: [],
-        pending: '',
-        createdAt: '',
+        pending: false,
       },
       users: [],
       roles: [],
@@ -147,152 +166,164 @@ export default {
       deleteModal: false,
       unsubscribe: null,
       avatarDefault,
-      pagInicio: 0,
-      pagFim: 5,
+      page: 1,
+      per_page: 5,
       filtroNome: '',
       filtroMatricula: '',
+      filtroRole: null,
+      filtroProfile: null,
+      filtrarPendente: false,
+      timer: null,
     }
   },
   methods: {
     adicionarRole(){
       const role = this.selectedRole;
-      if(role && !this.user.roles.includes(role.nome)){
-        this.user.roles.push(role.nome);
+      if(role && !this.user.roles.some(r => r.id === role.id)){
+        this.user.roles.push(role);
       }
+
       this.selectedRole = ""
     },
     removerRole(index){
       this.user.roles.splice(index, 1);
     },
-    getRoleColor(roleName){
-      const role = this.roles.find(r => r.nome === roleName);
-      return role ? role.cor : '#bdc3c7';
+    async getAllUsers() {
+      const token = await getToken();
+
+      const params = {
+        name: this.filtroNome || null,
+        matricula: this.filtroMatricula || null,
+        role: this.filtroRole || null,
+        profile: this.filtroProfile || null,
+        pending: this.filtrarPendente ? true : null,
+        page: this.page,
+        per_page: this.per_page,
+      };
+
+      const response = await api.get('/users', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: params
+      });
+
+      this.users = response.data;
     },
-    getAllUsers() {
-      this.unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-        this.users = [];
-        snapshot.forEach((doc) => {
-          this.users.push({uid: doc.id, ...doc.data()})
-        })
-      })
-    },
+
     async createUser() {
-      let q = query(collection(db, "users"), where("email", "==", this.user.email));
-      const querySnapshotEmail = await getDocs(q);
+      const token = await getToken();
 
-      if(this.modoEdicao){
-        const filtered = querySnapshotEmail.docs.filter(doc => doc.id !== this.user.uid);
-        if(filtered.length > 0){
-          alert("E-mail já cadastrado!");
-          return;
-        }
-      }
-
-      if(!querySnapshotEmail.empty && !this.modoEdicao){
-          alert("E-mail já cadastrado!");
-          return;
-      }
-
-
-      q = query(collection(db, "users"), where("matricula", "==", this.user.matricula));
-      const querySnapshotMatricula = await getDocs(q);
-
-      if(this.modoEdicao){
-        const filtered = querySnapshotMatricula.docs.filter(doc => doc.id !== this.user.uid);
-        if(filtered.length > 0){
-          alert("Matrícula já cadastrada!");
-          return;
-        }
-      }
-
-      if(!querySnapshotMatricula.empty && !this.modoEdicao){
-          alert("Matrícula já cadastrada!");
-          return;
-      }
-
-      let uid = crypto.randomUUID();
-      if(this.modoEdicao){
-        uid = this.user.uid;
-      }
-
-      await setDoc(doc(db, 'users', uid),{
-        nome: this.user.nome,
+      const data = {
+        name: this.user.name,
         matricula: this.user.matricula,
-        perfil: this.user.perfil,
-        roles: this.user.roles,
         email: this.user.email,
-        telefone: this.user.telefone,
-        pending: this.modoEdicao ? this.user.pending : false,
-        createdAt: this.modoEdicao ? this.user.createdAt : new Date(),
-      }, {merge: true})
+        profile: this.user.profile,
+        roles: this.user.roles.map(role => role.id),
+      };
+
+      if (this.modoEdicao) {
+        await api.put(`/users/${this.user.id}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        await api.post('/users', data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
 
       this.limparForm()
+      this.getAllUsers()
       this.novoUsuarioModal = false
       this.modoEdicao = false
     },
     editarUser(user) {
-      this.user.uid = user.uid
+      this.user.id = user.id
+      this.user.firebaseId = user.firebaseId
+      this.user.name = user.name
       this.user.matricula = user.matricula
-      this.user.nome = user.nome
       this.user.email = user.email
-      this.user.telefone = user.telefone
+      this.user.profile = user.profile
       this.user.roles = user.roles
-      this.user.perfil = user.perfil
-      this.user.pending = user.pending
-      this.user.createdAt = user.createdAt
 
       this.novoUsuarioModal = true
       this.modoEdicao = true
     },
     limparForm() {
       this.user.matricula = ''
-      this.user.nome = ''
+      this.user.name = ''
       this.user.email = ''
-      this.user.telefone = ''
       this.user.password = ''
       this.user.roles = []
-      this.user.perfil = 'viewer'
-      this.user.pending = ''
-      this.user.createdAt = ''
+      this.user.profile = 'viewer'
     },
     deleteUser(user) {
-      this.user.uid = user.uid
+      this.user.id = user.id
       this.deleteModal = true
     },
     async confirmarDelete(){
-      await deleteDoc(doc(db, 'users', this.user.uid))
+      const token = await getToken();
+
+      await api.delete(`/users/${this.user.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.getAllUsers()
       this.limparForm()
       this.deleteModal = false
     },
     async aprovarUser(user) {
-      await setDoc(doc(db, 'users', user.uid),{
-        pending: false,
-      }, {merge: true})
+      const token = await getToken();
+
+      await api.post(`/users/approve/${user.id}`,
+      { fake: true},
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.getAllUsers()
     },
     pagAnterior(){
-      if(this.pagInicio > 0){
-        this.pagInicio -= 5;
-        this.pagFim -= 5;
+      if(this.page > 1){
+        this.page--;
+        this.getAllUsers();
       }
     },
     pagSeguinte(){
-      if(this.pagFim < this.users.length){
-        this.pagInicio += 5;
-        this.pagFim += 5;
-      }
+      this.page++;
+      this.getAllUsers();
     },
-    carregarLocalStorage(){
-      this.roles = JSON.parse(localStorage.getItem('roles')) || [];
-    }
+    async getRoles() {
+      const token = await getToken();
+
+      const response = await api.get('/roles', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.roles = response.data;
+    },
+    applyFilters() {
+      clearTimeout(this.timer);
+
+      this.timer = setTimeout(() => {
+        this.page = 1;
+        this.getAllUsers();
+      }, 500); // 500ms = meio segundo
+    },
   },
   created() {
-    this.carregarLocalStorage();
+    this.getRoles();
     this.getAllUsers();
   },
   beforeUnmount() {
     if(this.unsubscribe){
       this.unsubscribe();
     }
-  }
+  },
+  watch: {
+    filtroNome() { this.applyFilters() },
+    filtroMatricula() { this.applyFilters() },
+    filtroRole() { this.applyFilters() },
+    filtroProfile() { this.applyFilters() },
+    filtrarPendente() { this.applyFilters() },
+  },
 }
 </script>

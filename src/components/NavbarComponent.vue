@@ -416,8 +416,6 @@ export default {
         channels: this.preferencia.canais,
       };
 
-      console.log('Payload de preferências:', payload);
-
       try {
         await api.get('/user-preferences', {
           headers: { Authorization: `Bearer ${token}` }
@@ -448,20 +446,16 @@ export default {
     async salvarPerfil() {
       const token = await getToken();
 
-      await api.put(
-        '/users/me',
-        {
-          name: this.userData.nome,
-          email: this.userData.email,
-          phone: this.userData.telefone,
-          picture: this.userData.foto,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      )
+      const data = {
+        name: this.userData.nome,
+        email: this.userData.email,
+        phone: this.userData.telefone,
+        picture: null,
+      };
+
+      await api.put('/users/me',data, {
+          headers: { Authorization: `Bearer ${token}` }
+      });
 
       this.perfilModal = false
       this.getUserInfo()
