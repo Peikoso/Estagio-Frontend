@@ -273,6 +273,7 @@
 
 <script>
 import { auth } from '../firebaseConfig.js'
+import { getToken } from '../services/token.js'
 import { signOut } from 'firebase/auth'
 import logo from '@/assets/icons/logo.png'
 import notificacaoImg from '@/assets/icons/notifications.svg'
@@ -331,7 +332,7 @@ export default {
   methods: {
     async getUserInfo() {
       if (auth.currentUser && !auth.currentUser.isAnonymous) {
-        const token = await auth.currentUser.getIdToken(true)
+        const token = await getToken();
 
         const response = await api.get('/users/me', {
           headers: {
@@ -404,7 +405,7 @@ export default {
       this.sidebarAberta = !this.sidebarAberta
     },
     async getCanais() {
-      const token = await auth.currentUser.getIdToken(true)
+      const token = await getToken();
 
       const response = await api.get('/channels', {
         headers: {
@@ -415,7 +416,7 @@ export default {
       this.canais = response.data
     },
     async salvarPreferencias() {
-      const token = await auth.currentUser.getIdToken(true)
+      const token = await getToken();
 
       const payload = {
         dndStartTime: this.preferencia.startTime,
@@ -453,7 +454,7 @@ export default {
       this.incidentes = incidentesData.filter((incidente) => incidente.status === 'open')
     },
     async salvarPerfil() {
-      const token = await auth.currentUser.getIdToken(true)
+      const token = await getToken();
 
       await api.put(
         '/users/me',

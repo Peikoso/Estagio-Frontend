@@ -23,9 +23,9 @@
           </thead>
           <tbody>
             <tr v-for="role in roles.slice(pagInicio, pagFim)" :key="role.id">
-              <td data-label="Nome">{{ role.nome }}</td>
-              <td data-label="Descrição">{{ role.descricao }}</td>
-              <td data-label="Cor"><span :style="{ backgroundColor: role.cor, width: '20px', height: '20px', display: 'inline-block' }"></span></td>
+              <td data-label="Nome">{{ role.name }}</td>
+              <td data-label="Descrição">{{ role.description }}</td>
+              <td data-label="Cor"><span :style="{ backgroundColor: role.color, width: '20px', height: '20px', display: 'inline-block' }"></span></td>
               <td class="actions" data-label="Ações">
                 <button @click="editarRole(role)">Editar</button>
                 <button @click="excluirRole(role)">Deletar</button>
@@ -45,15 +45,15 @@
         <button class="close-btn" @click="roleModal = false; this.limparForm()">&times;</button>
         <form @submit.prevent="salvarRole">
           <h2>Editar Role</h2>
-          <label for="nome">Nome:</label>
-          <input type="text" id="nome" v-model="role.nome" required>
+          <label for="name">Nome:</label>
+          <input type="text" id="name" v-model="role.name" required>
 
-          <label for="descricao">Descrição:</label>
-          <input type="text" id="descricao" v-model="role.descricao" required>
+          <label for="description">Descrição:</label>
+          <input type="text" id="description" v-model="role.description" required>
 
           <div style="justify-content: center; align-items: center; display: flex; flex-direction: column; margin-top: 10px; margin-bottom: 10px;">
-            <label for="cor">Cor:</label>
-            <input :style="{width: '100px', height: '100px',}" type="color" id="cor" v-model="role.cor" required>
+            <label for="color">Cor:</label>
+            <input :style="{width: '100px', height: '100px',}" type="color" id="color" v-model="role.color" required>
           </div>
           <button type="submit">Salvar</button>
         </form>
@@ -74,14 +74,17 @@
 </template>
 
 <script>
+import api from '@/services/api';
+import { getToken } from '../services/token.js'
+
 export default {
   data() {
     return {
       role:{
         id: '',
-        nome: '',
-        descricao: '',
-        cor: '#000000',
+        name: '',
+        description: '',
+        color: '#000000',
       },
       filtroNome: '',
       filtroMatricula: '',
@@ -106,31 +109,36 @@ export default {
         this.pagFim += 5;
       }
     },
-    salvarRole() {
+    async getRoles() {
+      const token = await getToken();
+
+      const response = await api.get('/roles', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.roles = response.data;
+    },
+    async salvarRole() {
       const data = {
-        nome: this.role.nome,
-        descricao: this.role.descricao,
-        cor: this.role.cor,
+        name: this.role.name,
+        description: this.role.description,
+        color: this.role.color,
       };
 
+      const token = await getToken();
 
       if(this.editRole == false){
-        const novoData = {
-          id: crypto.randomUUID(),
-          ...data
-        }
-        this.roles.push(novoData);
-      }else{
-        const novoData = {
-          id: this.role.id,
-          ...data
-        }
-        const index = this.roles.findIndex(role => role.id === this.role.id)
-        this.roles[index] = novoData
+        await api.post('/roles', data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
+      }else{
+        await api.put(`/roles/${this.role.id}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
       }
 
-      this.salvarLocalStorage();
+      await this.getRoles();
       this.limparForm();
       this.editRole = false;
       this.roleModal = false;
@@ -140,35 +148,33 @@ export default {
       this.editRole = true;
 
       this.role.id = role.id;
-      this.role.nome = role.nome;
-      this.role.descricao = role.descricao;
-      this.role.cor = role.cor;
+      this.role.name = role.name;
+      this.role.description = role.description;
+      this.role.color = role.color;
     },
     excluirRole(role) {
       this.role.id = role.id
       this.deleteModal = true
     },
-    confirmarDelete(){
-      const index = this.roles.findIndex(r => r.id === this.role.id)
-      this.roles.splice(index, 1)
-      this.salvarLocalStorage()
+    async confirmarDelete(){
+      const token = await getToken();
+
+      await api.delete(`/roles/${this.role.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
       this.limparForm()
+      await this.getRoles();
       this.deleteModal = false
     },
     limparForm(){
-      this.role.nome = '';
-      this.role.descricao = '';
-      this.role.cor = '#000000';
-    },
-    carregarLocalStorage() {
-      this.roles = JSON.parse(localStorage.getItem('roles')) || [];
-    },
-    salvarLocalStorage() {
-      localStorage.setItem('roles', JSON.stringify(this.roles));
+      this.role.name = '';
+      this.role.description = '';
+      this.role.color = '#000000';
     },
   },
   created() {
-    this.carregarLocalStorage();
+    this.getRoles();
   },
 };
 </script>
