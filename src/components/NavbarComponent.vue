@@ -76,14 +76,6 @@
         </router-link>
         <router-link
           v-if="userData.perfil === 'admin'"
-          :to="{ name: 'perfil' }"
-          class="link"
-          active-class="ativo"
-        >
-          Gestão de Perfils
-        </router-link>
-        <router-link
-          v-if="userData.perfil === 'admin'"
           :to="{ name: 'roles' }"
           class="link"
           active-class="ativo"

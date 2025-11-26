@@ -8,7 +8,6 @@ import LogsView from '../views/LogsView.vue'
 import LoginView from '../views/LoginView.vue'
 import SenhaView from '../views/SenhaView.vue'
 import AcessoView from '../views/AcessoView.vue'
-import PerfilView from '../views/PerfilView.vue'
 import RunnersView from '../views/RunnersView.vue'
 import RelatorioView from '../views/RelatorioView.vue'
 import SettingsView from '../views/SettingsView.vue'
@@ -69,11 +68,6 @@ const router = createRouter({
       path: '/logs',
       name: 'logs',
       component: LogsView,
-    },
-    {
-      path: '/perfil',
-      name: 'perfil',
-      component: PerfilView,
     },
     {
       path: '/runners',
