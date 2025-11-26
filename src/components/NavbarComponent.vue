@@ -119,54 +119,30 @@
         <button class="close-btn" @click="preferenciaModal = false">&times;</button>
         <h2>Preferências</h2>
         <form @submit.prevent="salvarPreferencias">
-          <div class="switch-container">
-            <span class="switch-label">Notificações de Push</span>
-            <label class="switch">
-              <input type="checkbox" v-model="preferencia.enablePush" />
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="switch-container">
-            <span class="switch-label">Notificações Sonoras de Push</span>
-            <label class="switch">
-              <input type="checkbox" v-model="preferencia.pushSound" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <br />
           <h5 style="text-align: center">Janela de Não Perturbe</h5>
           <div class="row">
             <div class="col">
               <label for="hora_inicio">Hora Início</label>
-              <input type="time" id="hora_inicio" v-model="preferencia.startTime" />
+              <input type="time" id="hora_inicio" v-model="preferencia.startTime"  step="1"/>
             </div>
             <div class="col">
               <label for="hora_final">Hora Final</label>
-              <input type="time" id="hora_final" v-model="preferencia.endTime" />
+              <input type="time" id="hora_final" v-model="preferencia.endTime" step="1"/>
             </div>
           </div>
           <br />
           <h5 style="text-align: center">Canais de Notificação</h5>
-          <div class="row">
-            <div class="col">
-              <div class="switch-container">
-                <span class="switch-label">Email</span>
-                <label class="switch">
-                  <input type="checkbox" v-model="preferencia.enableEmail" />
-                  <span class="slider"></span>
-                </label>
-              </div>
-            </div>
-
-            <div class="col">
-              <div class="switch-container">
-                <span class="switch-label">ComuniQ</span>
-                <label class="switch">
-                  <input type="checkbox" v-model="preferencia.enableComuniQ" />
-                  <span class="slider"></span>
-                </label>
-              </div>
+          <div class="channels-grid">
+            <div class="channel-row" v-for="canal in canais" :key="canal.id">
+              <span class="channel-label">{{ canal.name }}</span>
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  :value="canal.id"
+                  v-model="preferencia.canais"
+                />
+                <span class="slider"></span>
+              </label>
             </div>
           </div>
           <button type="submit">Salvar</button>
@@ -185,7 +161,7 @@
           <div class="row">
             <div class="col">
               <label for="nome">Nome</label>
-              <input type="text" id="nome" v-model="userData.nome" :disabled="true" />
+              <input type="text" id="nome" v-model="userData.nome"/>
             </div>
             <div class="col">
               <div class="avatar-container">
@@ -197,24 +173,33 @@
           </div>
 
           <label for="email">Email</label>
-          <input type="email" id="email" v-model="userData.email" :disabled="true" />
+          <input type="email" id="email" v-model="userData.email"/>
 
           <div class="row">
             <div class="col">
               <label for="matricula">Matrícula</label>
-              <input type="text" id="matricula" v-model="userData.matricula" :disabled="true" />
+              <input type="text" id="matricula" v-model="userData.matricula" :disabled="true"/>
             </div>
             <div class="col">
               <label for="perfil">Perfil</label>
-              <input type="text" id="perfil" v-model="userData.perfil" :disabled="true" />
+              <input type="text" id="perfil" v-model="userData.perfil" :disabled="true"/>
             </div>
           </div>
 
           <label for="roles">Roles</label>
-          <input type="text" id="roles" v-model="userData.roles" :disabled="true" />
+          <div id="roles" class="fake-input">
+            <span
+              v-for="(role, index) in userData.roles"
+              :key="index"
+              :style="{ backgroundColor: role.color }"
+              class="role-badge"
+            >
+              {{ role.name }}
+            </span>
+          </div>
 
           <label for="telefone">Telefone</label>
-          <input type="number" id="telefone" v-model="userData.telefone" />
+          <input type="number" id="telefone" v-model="userData.telefone"/>
 
           <button type="submit">Salvar</button>
         </form>
@@ -287,14 +272,13 @@
 </template>
 
 <script>
-import { auth, db } from '../firebaseConfig.js'
-import { doc, setDoc } from 'firebase/firestore'
+import { auth } from '../firebaseConfig.js'
 import { signOut } from 'firebase/auth'
-import { getDoc } from 'firebase/firestore'
 import logo from '@/assets/icons/logo.png'
 import notificacaoImg from '@/assets/icons/notifications.svg'
 import avatarDefault from '@/assets/icons/avatar-default.svg'
 import help from '@/assets/icons/help.svg'
+import api from '@/services/api.js'
 
 export default {
   name: 'NavbarComponent',
@@ -308,17 +292,15 @@ export default {
         telefone: '',
         pending: '',
         perfil: '',
-        roles: '',
+        roles: [],
         foto: '',
       },
       preferencia: {
-        enablePush: false,
-        pushSound: false,
         startTime: '00:00',
         endTime: '00:00',
-        enableEmail: false,
-        enableComuniQ: false,
+        canais: [],
       },
+      canais: [],
       incidente: {
         id: '',
         regra_id: '',
@@ -348,40 +330,44 @@ export default {
   },
   methods: {
     async getUserInfo() {
-      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid))
-      if (userDoc.exists()) {
-        this.userData.id = userDoc.id
-        this.userData.matricula = userDoc.data().matricula
-        this.userData.nome = userDoc.data().nome
-        this.userData.email = userDoc.data().email
-        this.userData.telefone = userDoc.data().telefone || ''
-        this.userData.pending = userDoc.data().pending
-        this.userData.perfil = userDoc.data().perfil
-        this.userData.roles = userDoc.data().roles
-        this.userData.foto = userDoc.data().foto || this.avatarDefault
+      if (auth.currentUser && !auth.currentUser.isAnonymous) {
+        const token = await auth.currentUser.getIdToken(true)
 
-        const prefDoc = await getDoc(doc(db, 'preferences', this.userData.id))
-        if (prefDoc.exists()) {
-          this.preferencia.enablePush = prefDoc.data().enablePush
-          this.preferencia.pushSound = prefDoc.data().pushSound
-          this.preferencia.startTime = prefDoc.data().startTime
-          this.preferencia.endTime = prefDoc.data().endTime
-          this.preferencia.enableEmail = prefDoc.data().enableEmail
-          this.preferencia.enableComuniQ = prefDoc.data().enableComuniQ
-        }
+        const response = await api.get('/users/me', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        this.userData.id = response.data.id
+        this.userData.matricula = response.data.matricula
+        this.userData.nome = response.data.name
+        this.userData.email = response.data.email
+        this.userData.telefone = response.data.phone || ''
+        this.userData.pending = response.data.pending
+        this.userData.perfil = response.data.profile
+        this.userData.roles = response.data.roles
+        this.userData.foto = response.data.picture || this.avatarDefault
+
+        const preferenciasResponse = await api.get('/user-preferences', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        this.preferencia.startTime = preferenciasResponse.data.dndStartTime || '00:00:00'
+        this.preferencia.endTime = preferenciasResponse.data.dndEndTime || '00:00:00'
+        this.preferencia.canais = preferenciasResponse.data.channels.map(channel => channel.id) || []
+
       } else if (auth.currentUser.isAnonymous === true) {
         this.userData.id = 'visitante'
         this.userData.matricula = 'visitante'
-        this.userData.nome = 'visitante'
+        this.userData.name = 'visitante'
         this.userData.email = 'visitante'
         this.userData.pending = 'visitante'
-        this.userData.perfil = 'viewer'
+        this.userData.profile = 'viewer'
         this.userData.roles = 'visitante'
         this.userData.foto = this.avatarDefault
-      } else {
-        await signOut(auth)
-        this.$router.push({ name: 'login' })
-        localStorage.removeItem('userData')
       }
 
       localStorage.setItem('userData', JSON.stringify(this.userData))
@@ -417,20 +403,49 @@ export default {
     toggleSidebar() {
       this.sidebarAberta = !this.sidebarAberta
     },
+    async getCanais() {
+      const token = await auth.currentUser.getIdToken(true)
+
+      const response = await api.get('/channels', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      this.canais = response.data
+    },
     async salvarPreferencias() {
-      await setDoc(
-        doc(db, 'preferences', this.userData.id),
-        {
-          enablePush: this.preferencia.enablePush,
-          pushSound: this.preferencia.pushSound,
-          startTime: this.preferencia.startTime,
-          endTime: this.preferencia.endTime,
-          enableEmail: this.preferencia.enableEmail,
-          enableComuniQ: this.preferencia.enableComuniQ,
-        },
-        { merge: true },
-      )
-      this.preferenciaModal = false
+      const token = await auth.currentUser.getIdToken(true)
+
+      const payload = {
+        dndStartTime: this.preferencia.startTime,
+        dndEndTime: this.preferencia.endTime,
+        channels: this.preferencia.canais,
+      };
+
+      console.log('Payload de preferências:', payload);
+
+      try {
+        await api.get('/user-preferences', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        await api.put('/user-preferences', payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+      } catch (err) {
+        if (err.response && err.response.status === 404) {
+          await api.post('/user-preferences', payload, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } else {
+          console.error('Erro ao salvar preferências:', err);
+          return;
+        }
+      }
+
+      this.preferenciaModal = false;
     },
     carregarLocalStorage() {
       this.regras = JSON.parse(localStorage.getItem('regras')) || []
@@ -438,12 +453,21 @@ export default {
       this.incidentes = incidentesData.filter((incidente) => incidente.status === 'open')
     },
     async salvarPerfil() {
-      await setDoc(
-        doc(db, 'users', this.userData.id),
+      const token = await auth.currentUser.getIdToken(true)
+
+      await api.put(
+        '/users/me',
         {
-          telefone: this.userData.telefone,
+          name: this.userData.nome,
+          email: this.userData.email,
+          phone: this.userData.telefone,
+          picture: this.userData.foto,
         },
-        { merge: true },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
       )
 
       this.perfilModal = false
@@ -462,6 +486,7 @@ export default {
   },
   created() {
     this.getUserInfo()
+    this.getCanais()
     this.carregarLocalStorage()
   },
   beforeUnmount() {

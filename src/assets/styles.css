@@ -398,6 +398,32 @@ textarea#sql {
   flex: 1; /* cada coluna ocupa metade do espaço */
 }
 
+.channels-grid {
+  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 colunas */
+  gap: 12px 20px; /* espaçamento */
+  width: 100%;
+}
+
+.channel-row {
+  display: flex;
+  justify-content: space-between;  /* nome à esquerda, switch à direita */
+  align-items: center;
+  padding: 6px 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  min-height: 40px;
+}
+
+.channel-label {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;              /* ocupa todo o espaço disponível */
+  white-space: normal;  /* permite quebra de linha */
+  word-break: break-word; /* quebra palavras grandes */
+}
+
 /* Ajustes gerais de inputs e selects */
 .modal input,
 .modal select,

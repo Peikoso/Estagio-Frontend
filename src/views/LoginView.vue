@@ -45,9 +45,7 @@
 </template>
 
 <script>
-import { db } from '../firebaseConfig.js'
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInAnonymously } from 'firebase/auth'
-import { collection, query, where, getDocs, setDoc, deleteDoc, doc } from 'firebase/firestore'
+import { getAuth, signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth'
 export default {
   name: 'LoginView',
   data() {
@@ -66,48 +64,7 @@ export default {
         await signInWithEmailAndPassword(auth, this.email, this.password)
         this.$router.push({ name: 'dashboard' })
       } catch (error) {
-        try {
-          const q = query(collection(db, 'users'), where('email', '==', this.email))
-          const querySnapshot = await getDocs(q)
-
-          if (querySnapshot.empty) throw new Error('Usuário não encontrado no Firestore!')
-
-          if (!querySnapshot.empty) {
-            const oldDoc = querySnapshot.docs[0]
-            const oldData = oldDoc.data()
-
-            if(oldData.pending){
-              alert('Seu acesso ainda está pendente de aprovação.')
-              return
-            }
-
-            const userCredential = await createUserWithEmailAndPassword(
-              auth,
-              this.email,
-              this.password,
-            )
-
-            const uid = userCredential.user.uid
-
-            await signOut(auth)
-
-            await deleteDoc(doc(db, 'users', oldDoc.id))
-            await setDoc(
-              doc(db, 'users', uid),
-              {
-                ...oldData,
-              },
-              { merge: true },
-            )
-
-            await signInWithEmailAndPassword(auth, this.email, this.password)
-            this.$router.push({ name: 'dashboard' })
-          } else {
-            console.error('Error durante o login: ', error.code, error.message)
-          }
-        } catch (error) {
-          console.error('Erro ao criar usuário ou logar: ', error.code, error.message)
-        }
+          console.error('error with login', error.code, error.message)
       } finally {
         this.isLoadingLogin = false
       }
@@ -119,7 +76,7 @@ export default {
         await signInAnonymously(auth)
         this.$router.push({ name: 'dashboard' })
       } catch (error) {
-        console.error('Erro ao fazer login anônimo: ', error.code, error.message)
+        console.error('error with login: ', error.code, error.message)
       } finally {
         this.isLoadingVisitante = false
       }
