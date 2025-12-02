@@ -289,8 +289,8 @@ export default {
         foto: '',
       },
       preferencia: {
-        startTime: '00:00',
-        endTime: '00:00',
+        startTime: '00:00:00',
+        endTime: '00:00:00',
         canais: [],
       },
       canais: [],

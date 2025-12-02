@@ -173,8 +173,8 @@ export default {
       this.role.color = '#000000';
     },
   },
-  created() {
-    this.getRoles();
+  async created() {
+    await this.getRoles();
   },
 };
 </script>
