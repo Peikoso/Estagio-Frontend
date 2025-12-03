@@ -242,8 +242,10 @@ export default{
     async adicionarComentario() {
       const token = await getToken();
 
-      console.log(this.incidente.id);
-      console.log(this.novoComentario);
+      if(!this.novoComentario.trim()){
+        alert('O comentário não pode ser vazio.');
+        return;
+      }
 
       try{
         await api.put(`/incidents/action/${this.incidente.id}`, { comment: this.novoComentario }, {
