@@ -11,7 +11,7 @@
         <div>
           <h3>Incidentes Abertos</h3>
           <br><br>
-          <h3>{{ incidentes.length }}</h3>
+          <h3>{{ metrics.totalOpen }}</h3>
           <br>
           <br>
           <p>Aguardando ação</p>
@@ -21,7 +21,7 @@
         <div>
           <h3>Em Tratamento</h3>
           <br><br>
-          <h3>{{ tratamento }}</h3>
+          <h3>{{ metrics.totalAck }}</h3>
           <br>
           <br>
           <p>Reconhecidos</p>
@@ -31,7 +31,7 @@
         <div>
           <h3>Fechados</h3>
           <br><br>
-          <h3>{{ fechados }}</h3>
+          <h3>{{ metrics.totalClosed }}</h3>
           <br>
           <br>
           <p>Resolvidos</p>
@@ -41,7 +41,7 @@
         <div>
           <h3>Regras Ativas</h3>
           <br><br>
-          <h3>{{ regras_ativas }}</h3>
+          <h3>{{ metrics.totalRulesActive }}</h3>
           <br>
           <br>
           <p>Em execução</p>
@@ -53,7 +53,7 @@
         <div>
           <h3>Tempo Médio de ACK</h3>
           <br><br>
-          <h3>{{ tempo_medio_ack}} minutos</h3>
+          <h3>{{ (metrics.avgAckTimeSeconds / 60).toFixed(0) }} minutos</h3>
           <br>
           <br>
           <p>Desde criação até reconhecimento</p>
@@ -63,7 +63,7 @@
         <div>
           <h3>Tempo Médio de Resolução</h3>
           <br><br>
-          <h3>{{ tempo_medio_res }} minutos</h3>
+          <h3>{{ (metrics.avgResolutionTimeSeconds / 60).toFixed(0) }} minutos</h3>
           <br>
           <br>
           <p>Desde criação até fechamento</p>
@@ -74,23 +74,22 @@
       <p>Feed de Incidentes</p>
       <div class="filtro-container">
         <label class="filtro-label" for="filtro">Filtrar Incidentes</label>
+        <input type="text" id="filtro" v-model="filtroRegra" placeholder="Digite o nome da regra" />
         <select id="filtro-status" v-model="filtroStatus">
-          <option value="">Todos</option>
-          <option value="open">Open</option>
-          <option value="ack">ACK</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select id="filtro-regra" v-model="filtroRegra">
-          <option value="">Todas as Regras</option>
-          <option v-for="regra in regras" :key="regra.id" :value="regra.id">
-            {{ regra.nome }}
-          </option>
+          <option :value="null">Status</option>
+          <option value="OPEN">Open</option>
+          <option value="ACK">ACK</option>
+          <option value="CLOSED">Closed</option>
         </select>
         <select id="filtro-prioridade" v-model="filtroPrioridade">
-          <option value="">Todas as Prioridades</option>
-          <option value="Baixa">Baixa</option>
-          <option value="Média">Média</option>
-          <option value="Alta">Alta</option>
+          <option :value="null">Prioridades</option>
+          <option value="LOW">Baixa</option>
+          <option value="MEDIUM">Média</option>
+          <option value="HIGH">Alta</option>
+        </select>
+        <select id="filtroRole" v-model="filtroRole">
+          <option :value="null" selected>Roles</option>
+          <option v-for="(role, index) in roles" :key="index" :value="role.id">{{ role.name }}</option>
         </select>
       </div>
       <div class="table-responsive">
@@ -105,13 +104,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="incidente in incidentes.slice(pagInicio, pagFim)" :key="incidente.id">
-              <td data-label="Regra">{{ regras.find(regra => regra.id === incidente.regra_id)?.nome }}</td>
-              <td data-label="Prioridade">{{ regras.find(regra => regra.id === incidente.regra_id)?.prioridade  }}</td>
-              <td data-label="Aberta em">{{ incidente.created_at }}</td>
+            <tr v-for="incidente in incidentes" :key="incidente.id">
+              <td data-label="Regra">{{ incidente.rule.name }}</td>
+              <td data-label="Prioridade">{{ formatPriority(incidente.priority) }}</td>
+              <td data-label="Aberta em">{{ formatDate(incidente.createdAt) }}</td>
               <td data-label="Status" class="actions">
                 <button
-                  :disabled="user.perfil === 'viewer'"
+                  :disabled="user.profile === 'viewer'"
                   class="button-status"
                   :class="buttonStatus(incidente.status)"
                   @click="mudarStatus(incidente)"
@@ -143,159 +142,169 @@
 </template>
 
 <script>
+import api from '@/services/api';
+import { getToken } from '@/services/token';
+import { formatDate, formatPriority } from '@/services/format';
+
 export default{
   name: 'DashboardView',
   data(){
     return{
       incidente: {
         id: '',
-        regra_id: '',
-        user_escalado: '',
-        user_id_ack: '',
-        user_id_closed: '',
+        assignedUserId: '',
+        ruleId: '',
         status: '',
-        comentario_ack: '',
-        comentario_closed: '',
-        created_at: '',
-        ack_at: '',
-        closed_at: '',
-        logs: [],
+        priority: '',
+        ackAt: '',
+        closedAt: '',
+        rule: '',
+        createdAt: '',
       },
       incidentes: [],
-      regras: [],
+      metrics: {},
       user: {},
-      filtroStatus: '',
+      roles: [],
       filtroRegra: '',
-      filtroPrioridade: '',
-      tratamento: 3,
-      fechados: 4,
-      regras_ativas: 2,
-      tempo_medio_ack: 1,
-      tempo_medio_res: 10,
+      filtroStatus: null,
+      filtroPrioridade: null,
+      filtroRole: null,
       comentarioModal: false,
       novoComentario: '',
-      pagInicio: 0,
-      pagFim: 5,
+      page: 1,
+      perPage: 5,
     }
   },
-  methods: {
-    carregarLocalStorage() {
-      this.incidentes = JSON.parse(localStorage.getItem('incidentes')) || []
-      this.regras = JSON.parse(localStorage.getItem('regras')) || []
-    },
 
-    salvarLocalStorage() {
-      localStorage.setItem('incidentes', JSON.stringify(this.incidentes))
+  methods: {
+    formatDate,
+    formatPriority,
+    async getCurrentUser() {
+      const token = await getToken();
+      const response = await api.get('/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      this.user = response.data;
+    },
+    async getIncidents(){
+      const token = await getToken();
+
+      const params = {
+        status: this.filtroStatus || null,
+        ruleName: this.filtroRegra || null,
+        priority: this.filtroPrioridade || null,
+        roleId: this.filtroRole || null,
+        page: this.page,
+        perPage: this.perPage,
+      }
+
+      const response = await api.get('/incidents', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: params,
+      });
+
+      this.incidentes = response.data;
+    },
+    async getRoles() {
+      const token = await getToken();
+
+      const response = await api.get('/roles', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.roles = response.data;
+    },
+    async getMetrics() {
+      const token = await getToken();
+
+      const response = await api.get('/metrics/basic', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.metrics = response.data;
     },
 
     buttonStatus(status) {
-      if (status === 'open') {
+      if (status === 'OPEN') {
         return 'button-red'
-      } else if (status === 'ack') {
+      } else if (status === 'ACK') {
         return 'button-yellow'
       } else {
         return ''
       }
     },
-
     mudarStatus(incidente) {
-      if (incidente.status === 'ack' || incidente.status === 'open') {
+      if (incidente.status === 'ACK' || incidente.status === 'OPEN') {
         this.incidente.id = incidente.id
-        this.incidente.user_escalado = incidente.user_escalado
-        this.incidente.regra_id = incidente.regra_id
-        this.incidente.user_id_ack = incidente.user_id_ack
-        this.incidente.user_id_closed = incidente.user_id_closed
-        this.incidente.status = incidente.status
-        this.incidente.comentario_ack = incidente.comentario_ack
-        this.incidente.comentario_closed = incidente.comentario_closed
-        this.incidente.created_at = incidente.created_at
-        this.incidente.ack_at = incidente.ack_at
-        this.incidente.closed_at = incidente.closed_at
-        this.incidente.logs = incidente.logs
         this.comentarioModal = true
       }
     },
-    adicionarComentario() {
-      let data = {}
+    async adicionarComentario() {
+      const token = await getToken();
 
-      if (this.incidente.status === 'ack') {
-        data = {
-          id: this.incidente.id,
-          user_escalado: this.incidente.user_escalado,
-          regra_id: this.incidente.regra_id,
-          user_id_ack: this.incidente.user_id_ack,
-          user_id_closed: this.user.id,
-          status: 'closed',
-          comentario_ack: this.incidente.comentario_ack,
-          comentario_closed: this.novoComentario,
-          created_at: this.incidente.created_at,
-          ack_at: this.incidente.ack_at,
-          closed_at: new Date(),
-          logs: this.incidente.logs,
+      console.log(this.incidente.id);
+      console.log(this.novoComentario);
+
+      try{
+        await api.put(`/incidents/action/${this.incidente.id}`, { comment: this.novoComentario }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+      } catch (error) {
+        if(error.status === 401){
+          alert('Você não tem permissão para realizar esta ação.');
+        } else {
+          alert('Erro ao adicionar comentário. Tente novamente.');
         }
       }
 
-      if (this.incidente.status === 'open') {
-        data = {
-          id: this.incidente.id,
-          user_escalado: this.incidente.user_escalado,
-          regra_id: this.incidente.regra_id,
-          user_id_ack: this.user.id,
-          user_id_closed: this.incidente.user_id_closed,
-          status: 'ack',
-          comentario_ack: this.novoComentario,
-          comentario_closed: this.incidente.comentario_closed,
-          created_at: this.incidente.created_at,
-          ack_at: new Date(),
-          closed_at: this.incidente.closed_at,
-          logs: this.incidente.logs,
-        }
-      }
-
-      const index = this.incidentes.findIndex((i) => i.id === this.incidente.id)
-      this.incidentes[index] = data
-
-      this.salvarLocalStorage()
-      this.limparIncidente()
-      this.comentarioModal = false
+      this.getIncidents();
+      this.getMetrics();
+      this.comentarioModal = false;
+      this.limparIncidente();
     },
     limparIncidente() {
       this.incidente.id = ''
-      this.incidente.regra_id = ''
-      this.incidente.user_escalado = ''
-      this.incidente.user_id_ack = ''
-      this.incidente.user_id_closed = ''
+      this.incidente.assignedUserId = ''
+      this.incidente.ruleId = ''
       this.incidente.status = ''
-      this.incidente.comentario_ack = ''
-      this.incidente.comentario_closed = ''
-      this.incidente.created_at = ''
-      this.incidente.ack_at = ''
-      this.incidente.closed_at = ''
+      this.incidente.priority = ''
+      this.incidente.createdAt = ''
+      this.incidente.ackAt = ''
+      this.incidente.closedAt = ''
+      this.incidente.rule = ''
       this.novoComentario = ''
     },
     pagAnterior(){
-      if(this.pagInicio > 0){
-        this.pagInicio -= 5;
-        this.pagFim -= 5;
+      if(this.page > 1){
+        this.page--;
+        this.getIncidents();
       }
     },
     pagSeguinte(){
-      if(this.pagFim < this.incidentes.length){
-        this.pagInicio += 5;
-        this.pagFim += 5;
-      }
+      this.page++;
+      this.getIncidents();
+    },
+    applyFilters() {
+      clearTimeout(this.timer);
+
+      this.timer = setTimeout(() => {
+        this.page = 1;
+        this.getIncidents();
+      }, 500); // 500ms = meio segundo
     },
   },
   created(){
-    const checkUser = setInterval(() => {
-      const userData = JSON.parse(localStorage.getItem('userData'))
-      if (userData) {
-        this.user = userData
-        clearInterval(checkUser)
-      }
-    }, 100);
-
-    this.carregarLocalStorage()
-  }
+    this.getCurrentUser();
+    this.getIncidents();
+    this.getRoles();
+    this.getMetrics();
+  },
+  watch: {
+    filtroRegra() { this.applyFilters() },
+    filtroRole() { this.applyFilters() },
+    filtroPrioridade() { this.applyFilters() },
+    filtroStatus() { this.applyFilters() },
+  },
 }
 </script>
