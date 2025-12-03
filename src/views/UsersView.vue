@@ -273,7 +273,7 @@ export default {
     async aprovarUser(user) {
       const token = await getToken();
 
-      await api.post(`/users/approve/${user.id}`,
+      await api.post(`/users/${user.id}/approve`,
       { fake: true},
       {
         headers: { Authorization: `Bearer ${token}` }

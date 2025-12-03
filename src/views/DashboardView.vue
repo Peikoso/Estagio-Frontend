@@ -248,7 +248,7 @@ export default{
       }
 
       try{
-        await api.put(`/incidents/action/${this.incidente.id}`, { comment: this.novoComentario }, {
+        await api.put(`/incidents/${this.incidente.id}/action`, { comment: this.novoComentario }, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
