@@ -504,7 +504,7 @@ textarea#sql {
 }
 
 /* Responsivo para mobile */
-@media (max-width: 768px) {
+@media (max-width: 800px) {
   .small-views {
     display: block;
   }
