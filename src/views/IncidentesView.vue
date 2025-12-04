@@ -24,7 +24,9 @@
         </select>
         <select id="filtroRole" v-model="filtroRole">
           <option :value="null" selected>Roles</option>
-          <option v-for="(role, index) in roles" :key="index" :value="role.id">{{ role.name }}</option>
+          <option v-for="(role, index) in roles" :key="index" :value="role.id">
+            {{ role.name }}
+          </option>
         </select>
       </div>
       <div class="table-responsive">
@@ -42,7 +44,14 @@
           <tbody>
             <tr v-for="incidente in incidentes" :key="incidente.id">
               <td data-label="Detalhes" class="actions">
-                <button @click="incidenteModal = true; detalhesIncidente(incidente)">Ver</button>
+                <button
+                  @click="
+                    incidenteModal = true
+                    detalhesIncidente(incidente)
+                  "
+                >
+                  Ver
+                </button>
               </td>
               <td data-label="Regra">{{ incidente.rule.name }}</td>
               <td data-label="Prioridade">{{ formatPriority(incidente.priority) }}</td>
@@ -60,7 +69,7 @@
             </tr>
           </tbody>
         </table>
-        <div style="display: flex; justify-content: center; margin-top: 20px;">
+        <div style="display: flex; justify-content: center; margin-top: 20px">
           <button @click="pagAnterior">Anterior</button>
           <button @click="pagSeguinte">Seguinte</button>
         </div>
@@ -68,8 +77,18 @@
     </div>
 
     <div class="modal" v-if="incidenteModal">
-      <div class="modal-content" style="max-width: 800px;">
-        <button class="close-btn" style="top: 34px;" @click="incidenteModal = false; limparIncidente(); $router.push({ name: $route.name, query: {} })">&times;</button>
+      <div class="modal-content" style="max-width: 800px">
+        <button
+          class="close-btn"
+          style="top: 34px"
+          @click="
+            incidenteModal = false
+            limparIncidente()
+            $router.push({ name: $route.name, query: {} })
+          "
+        >
+          &times;
+        </button>
         <div class="modal-details">
           <h4>Detalhes do Incidente</h4>
           <p><strong>ID do Incidente:</strong> {{ incidente.id }}</p>
@@ -81,24 +100,42 @@
           <p><strong>Closed em:</strong> {{ formatDate(incidente.closedAt) }}</p>
           <p><strong>Usuário Designado:</strong> {{ incidente.assignedUserName }}</p>
         </div>
-        <div style="justify-content: center; display: flex; margin: 10px;">
-          <button :disabled="user.perfil === 'viewer'" class="button-status" :class="buttonStatus(incidente.status)" @click="statusIncidente(incidente);">{{ incidente.status }}</button>
-          <button :disabled="user.perfil === 'viewer'" class="button-status" style="width: 90px;" @click="reexecuteIncidente(incidente);">Reexecutar</button>
+        <div style="justify-content: center; display: flex; margin: 10px">
+          <button
+            :disabled="user.perfil === 'viewer'"
+            class="button-status"
+            :class="buttonStatus(incidente.status)"
+            @click="statusIncidente(incidente)"
+          >
+            {{ incidente.status }}
+          </button>
+          <button
+            :disabled="user.perfil === 'viewer'"
+            class="button-status"
+            style="width: 90px"
+            @click="reexecuteIncidente(incidente)"
+          >
+            Reexecutar
+          </button>
         </div>
-        <div style="justify-content: center; display: flex; margin: 10px;">
-          <label for="user" style="margin: 10px;">Escalonamento Manual</label>
+        <div style="justify-content: center; display: flex; margin: 10px">
+          <label for="user" style="margin: 10px">Escalonamento Manual</label>
           <select v-model="selectedUserId" id="user">
             <option disabled value="">Selecione um usuário</option>
-            <option v-for="user in users" :key="user.uid" :value="user.uid">{{ user.email }}</option>
+            <option v-for="user in users" :key="user.uid" :value="user.uid">
+              {{ user.email }}
+            </option>
           </select>
-          <button class="button-status" style="margin: 10px" @click="escalonarIncidente">Salvar</button>
+          <button class="button-status" style="margin: 10px" @click="escalonarIncidente">
+            Salvar
+          </button>
         </div>
-        <hr/>
+        <hr />
         <div class="modal-details">
           <h2>Ações do Incidente</h2>
           <div class="table-responsive">
             <p v-if="incidentLogs.length == 0"><strong>Nenhuma Ação Registrada</strong></p>
-            <table  v-if="incidentLogs.length >= 1">
+            <table v-if="incidentLogs.length >= 1">
               <thead>
                 <tr>
                   <th>De</th>
@@ -127,7 +164,13 @@
       <div class="modal-content">
         <button
           class="close-btn"
-          @click="comentarioModal = false; limparComentario()">&times;</button>
+          @click="
+            comentarioModal = false
+            limparComentario()
+          "
+        >
+          &times;
+        </button>
         <form @submit.prevent="salvarComentario()">
           <label for="comentario">Comentário</label>
           <textarea id="comentario" v-model="novoComentario"></textarea>
@@ -139,24 +182,35 @@
 
     <div v-if="reexecuteModal" class="modal">
       <div class="modal-content">
-        <button
-          class="close-btn"
-          @click="reexecuteModal = false">&times;</button>
+        <button class="close-btn" @click="reexecuteModal = false">&times;</button>
         <div>
           <h2>Reexecutar Regra</h2>
           <p>Tem certeza que deseja reexecutar a regra?</p>
           <button @click="confirmReexecuteIncidente()">Sim</button>
-          <button style="background-color: red;" @click="reexecuteModal = false">Não</button>
+          <button style="background-color: #b30d14" @click="reexecuteModal = false">Não</button>
         </div>
+      </div>
+    </div>
+
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div
+        style="background-color: #b30d14"
+        v-if="toastMessage && errorMessage"
+        class="mensagem-salvo"
+      >
+        {{ toastMessage }}
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import api from '@/services/api';
-import { getToken } from '@/services/token';
-import { formatDate, formatPriority } from '@/services/format';
+import api from '@/services/api'
+import { getToken } from '@/services/token'
+import { formatDate, formatPriority } from '@/services/format'
 
 export default {
   name: 'IncidentesView',
@@ -190,13 +244,16 @@ export default {
       reexecuteModal: false,
       page: 1,
       perPage: 5,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
     }
   },
   methods: {
     formatDate,
     formatPriority,
     async getIncidents() {
-      const token = await getToken();
+      const token = await getToken()
 
       const params = {
         status: this.filtroStatus || null,
@@ -205,99 +262,99 @@ export default {
         roleId: this.filtroRole || null,
         page: this.page,
         perPage: this.perPage,
-      };
+      }
 
       const response = await api.get('/incidents', {
         headers: { Authorization: `Bearer ${token}` },
         params: params,
-      });
+      })
 
-      this.incidentes = response.data;
+      this.incidentes = response.data
     },
     async getAllRoles() {
-      const token = await getToken();
+      const token = await getToken()
 
       const response = await api.get('/roles', {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })
 
-      this.roles = response.data;
+      this.roles = response.data
     },
 
     async detalhesIncidente(incidente) {
-      this.incidente = await this.getIncidenteById(incidente.id);
+      this.incidente = await this.getIncidenteById(incidente.id)
 
-      if(incidente.assignedUserId){
-        this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId);
+      if (incidente.assignedUserId) {
+        this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId)
       }
 
-      this.incidentLogs = await this.getIncidentLogs(incidente.id);
-
+      this.incidentLogs = await this.getIncidentLogs(incidente.id)
     },
 
     async getIncidenteById(id) {
-      const token = await getToken();
+      const token = await getToken()
 
       const response = await api.get(`/incidents/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })
 
-      return response.data;
+      return response.data
     },
 
-    async getIncidentLogs(incidenteId){
-      const token = await getToken();
+    async getIncidentLogs(incidenteId) {
+      const token = await getToken()
 
       const response = await api.get(`/incidents/${incidenteId}/logs`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })
 
-      return response.data;
+      return response.data
     },
 
     async getUserName(userId) {
-      const token = await getToken();
+      const token = await getToken()
 
       const response = await api.get(`/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })
 
-      return response.data.name;
+      return response.data.name
     },
 
     async statusIncidente(incidente) {
-      this.incidente = incidente;
+      this.incidente = incidente
 
       if (this.incidente.status === 'CLOSED') {
         this.reexecuteModal = true
         return
       }
 
-      this.comentarioModal = true;
+      this.comentarioModal = true
     },
     reexecuteIncidente(incidente) {
-      this.incidente = incidente;
+      this.incidente = incidente
 
       this.reexecuteModal = true
     },
 
     async confirmReexecuteIncidente() {
-      const token = await getToken();
+      const token = await getToken()
 
-      try{
-        await api.post(`/incidents/${this.incidente.id}/reexecute`,
-        { fake: true },
-        {
-        headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      try {
+        await api.post(
+          `/incidents/${this.incidente.id}/reexecute`,
+          { fake: true },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        )
 
-        this.getIncidents();
+        this.getIncidents()
       } catch (error) {
-        if(error.status === 401){
-          alert('Você não tem permissão para realizar esta ação.');
+        if (error.status === 401) {
+          this.toast('Você não tem permissão para realizar esta ação.', true)
         } else {
-          alert('Erro ao reexecutar incidente. Tente novamente.');
+          this.toast('Erro ao reexecutar incidente. Tente novamente.', true)
         }
       }
 
@@ -306,7 +363,7 @@ export default {
 
     buttonStatus(status) {
       if (status === 'OPEN') {
-        return 'button-red'
+        return 'button-#b30d14'
       } else if (status === 'ACK') {
         return 'button-yellow'
       } else {
@@ -315,47 +372,47 @@ export default {
     },
 
     async salvarComentario() {
-      const token = await getToken();
+      const token = await getToken()
 
-      if(!this.novoComentario.trim()){
-        alert('O comentário não pode ser vazio.');
-        return;
+      if (!this.novoComentario.trim()) {
+        this.toast('O comentário não pode ser vazio.', true)
+        return
       }
 
-      try{
-        await api.post(`/incidents/${this.incidente.id}/action`, { comment: this.novoComentario }, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      try {
+        await api.post(
+          `/incidents/${this.incidente.id}/action`,
+          { comment: this.novoComentario },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        )
 
-        this.getIncidents();
+        this.getIncidents()
       } catch (error) {
-        if(error.status === 401){
-          alert('Você não tem permissão para realizar esta ação.');
+        if (error.status === 401) {
+          this.toast('Você não tem permissão para realizar esta ação.', true)
         } else {
-          alert('Erro ao adicionar comentário. Tente novamente.');
+          this.toast('Erro ao adicionar comentário. Tente novamente.', true)
         }
       } finally {
         this.limparComentario()
         this.detalhesIncidente(this.incidente)
         this.comentarioModal = false
       }
-
-
     },
     escalonarIncidente() {
       if (!this.selectedUserId) {
-        alert('Por favor, selecione um usuário para escalonamento.')
+        this.toast('Por favor, selecione um usuário para escalonamento.', true)
         return
       }
 
-      if(this.incidente.status === 'closed'){
-        alert('Não é possível escalonar um incidente fechado.')
+      if (this.incidente.status === 'closed') {
+        this.toast('Não é possível escalonar um incidente fechado.', true)
         return
       }
-
 
       this.selectedUserId = ''
-
     },
 
     limparIncidente() {
@@ -376,23 +433,35 @@ export default {
     limparComentario() {
       this.novoComentario = ''
     },
-    async pagAnterior(){
-      if(this.page > 1){
-        this.page--;
-        await this.getIncidents();
+    async pagAnterior() {
+      if (this.page > 1) {
+        this.page--
+        await this.getIncidents()
       }
     },
-    async pagSeguinte(){
-      this.page++;
-      await this.getIncidents();
+    async pagSeguinte() {
+      this.page++
+      await this.getIncidents()
+    },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
     },
     applyFilters() {
-      clearTimeout(this.timer);
+      clearTimeout(this.timer)
 
       this.timer = setTimeout(() => {
-        this.page = 1;
-        this.getIncidents();
-      }, 500); // 500ms = meio segundo
+        this.page = 1
+        this.getIncidents()
+      }, 500) // 500ms = meio segundo
     },
   },
   created() {
@@ -404,32 +473,39 @@ export default {
       immediate: true,
       async handler(novoId) {
         if (!novoId) {
-          return;
+          return
         }
         try {
           const response = await this.getIncidenteById(novoId)
 
           this.incidenteModal = true
           this.detalhesIncidente(response)
-
-        } catch(error){
-          if(error.response && (error.response.status === 401 || error.response.status === 403)){
-            alert('Você não tem permissão para visualizar este incidente.');
-            return;
+        } catch (error) {
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            this.toast('Você não tem permissão para visualizar este incidente.', true)
+            return
           }
-          if(error.response && error.response.status === 404){
-            alert('Incidente não encontrado.');
-            return;
+          if (error.response && error.response.status === 404) {
+            this.toast('Incidente não encontrado.', true)
+            return
           }
-          console.error('Erro ao buscar incidente pelo ID da query:', error);
-          return;
+          console.error('Erro ao buscar incidente pelo ID da query:', error)
+          return
         }
-      }
+      },
     },
-    filtroRegra() { this.applyFilters() },
-    filtroRole() { this.applyFilters() },
-    filtroPrioridade() { this.applyFilters() },
-    filtroStatus() { this.applyFilters() },
+    filtroRegra() {
+      this.applyFilters()
+    },
+    filtroRole() {
+      this.applyFilters()
+    },
+    filtroPrioridade() {
+      this.applyFilters()
+    },
+    filtroStatus() {
+      this.applyFilters()
+    },
   },
 }
 </script>

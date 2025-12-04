@@ -13,9 +13,14 @@
     <div class="view-container">
       <div>
         <label class="filtro-label" for="filtro">Filtrar Nome</label>
-        <input type="text" id="filtro" v-model="filtroNome" placeholder="Digite o nome do usuário">
+        <input
+          type="text"
+          id="filtro"
+          v-model="filtroNome"
+          placeholder="Digite o nome do usuário"
+        />
         <label class="filtro-label" for="filtro">Filtrar Roles</label>
-        <input type="text" id="filtro" v-model="filtroRole" placeholder="Digite o nome da role">
+        <input type="text" id="filtro" v-model="filtroRole" placeholder="Digite o nome da role" />
       </div>
       <div class="table-responsive">
         <table>
@@ -38,7 +43,8 @@
               <td data-label="Hora Fim">{{ formatDate(escala.end_dt) }}</td>
               <td data-label="Roles">
                 <span
-                  v-for="(role, index) in escala.roles" :key="index"
+                  v-for="(role, index) in escala.roles"
+                  :key="index"
                   :style="{ backgroundColor: getRoleColor(role) }"
                   class="role-badge"
                 >
@@ -53,7 +59,7 @@
             </tr>
           </tbody>
         </table>
-        <div style="display: flex; justify-content: center; margin-top: 20px;">
+        <div style="display: flex; justify-content: center; margin-top: 20px">
           <button @click="pagAnterior()">Anterior</button>
           <button @click="pagSeguinte()">Seguinte</button>
         </div>
@@ -62,19 +68,30 @@
 
     <div class="modal" v-if="novaRotaModal">
       <div class="modal-content">
-        <button class="close-btn" @click="novaRotaModal = false; modoEdicao = false; this.limparForm()">&times;</button>
+        <button
+          class="close-btn"
+          @click="
+            novaRotaModal = false
+            modoEdicao = false
+            this.limparForm()
+          "
+        >
+          &times;
+        </button>
         <form @submit.prevent="createEscala">
           <label for="user">User</label>
           <select v-model="selectedUserId" id="user">
             <option disabled value="">Selecione um usuário</option>
-            <option v-for="user in users" :key="user.uid" :value="user.uid">{{ user.email }}</option>
+            <option v-for="user in users" :key="user.uid" :value="user.uid">
+              {{ user.email }}
+            </option>
           </select>
 
           <label for="start_dt">Hora Inicio</label>
-          <input type="datetime-local" id="start_dt" v-model="escala.start_dt">
+          <input type="datetime-local" id="start_dt" v-model="escala.start_dt" />
 
           <label for="end_dt">Hora Fim</label>
-          <input type="datetime-local" id="end_dt" v-model="escala.end_dt">
+          <input type="datetime-local" id="end_dt" v-model="escala.end_dt" />
 
           <button type="submit">Salvar</button>
         </form>
@@ -85,10 +102,18 @@
       <div class="modal-content">
         <button class="close-btn" @click="politicaRotaModal = false">&times;</button>
         <h2>Política de Rota</h2>
-        <p>Aqui você pode definir as políticas relacionadas ao escalonamento automático. Se não houver ACK, o sistema irá considerar o timeout definido.</p>
+        <p>
+          Aqui você pode definir as políticas relacionadas ao escalonamento automático. Se não
+          houver ACK, o sistema irá considerar o timeout definido.
+        </p>
 
         <label for="timeout">Tempo de timeout (minutos)</label>
-        <input type="number" id="timeout" v-model="timeout" placeholder="Tempo de timeout (minutos)">
+        <input
+          type="number"
+          id="timeout"
+          v-model="timeout"
+          placeholder="Tempo de timeout (minutos)"
+        />
 
         <button @click="salvarPoliticaRota(timeout)">Salvar</button>
       </div>
@@ -99,8 +124,15 @@
         <h3>Confirmar Exclusão</h3>
         <p>Tem certeza que deseja excluir esta escala?</p>
         <div class="botoes-confirmacao">
-          <button style="background-color: red;" @click="confirmarDelete()">Sim, Excluir</button>
-          <button @click="deleteModal = false; limparForm()">Cancelar</button>
+          <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
+          <button
+            @click="
+              deleteModal = false
+              limparForm()
+            "
+          >
+            Cancelar
+          </button>
         </div>
       </div>
     </div>
@@ -109,7 +141,16 @@
 
 <script>
 import { db } from '../firebaseConfig.js'
-import { doc, setDoc, onSnapshot, collection, getDoc, deleteDoc, orderBy, query } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  onSnapshot,
+  collection,
+  getDoc,
+  deleteDoc,
+  orderBy,
+  query,
+} from 'firebase/firestore'
 
 export default {
   name: 'RotasView',
@@ -149,48 +190,55 @@ export default {
     }
   },
   methods: {
-    getRoleColor(roleName){
-      const role = this.roles.find(r => r.nome === roleName);
-      return role ? role.cor : '#bdc3c7';
+    getRoleColor(roleName) {
+      const role = this.roles.find((r) => r.nome === roleName)
+      return role ? role.cor : '#bdc3c7'
     },
     getAllUsers() {
       this.unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-        this.users = [];
+        this.users = []
         snapshot.forEach((doc) => {
-          this.users.push({uid: doc.id, ...doc.data()})
+          this.users.push({ uid: doc.id, ...doc.data() })
         })
       })
     },
     getAllEscalas() {
-      this.unsubscribeEscalas = onSnapshot(query(collection(db, 'escalas'), orderBy('start_dt')), (snapshot) => {
-        this.escalas = [];
-        snapshot.forEach((doc) => {
-          this.escalas.push({uid: doc.id, ...doc.data()})
-        })
-      })
+      this.unsubscribeEscalas = onSnapshot(
+        query(collection(db, 'escalas'), orderBy('start_dt')),
+        (snapshot) => {
+          this.escalas = []
+          snapshot.forEach((doc) => {
+            this.escalas.push({ uid: doc.id, ...doc.data() })
+          })
+        },
+      )
     },
     carregarLocalStorage() {
-      this.roles = JSON.parse(localStorage.getItem('roles')) || [];
+      this.roles = JSON.parse(localStorage.getItem('roles')) || []
     },
     async createEscala() {
-      const userRef = doc(db, "users", this.selectedUserId);
-      const userSnap = await getDoc(userRef);
+      const userRef = doc(db, 'users', this.selectedUserId)
+      const userSnap = await getDoc(userRef)
 
-      const user = userSnap.data();
+      const user = userSnap.data()
 
-      if(!this.modoEdicao){
-        this.escala.uid = crypto.randomUUID();
+      if (!this.modoEdicao) {
+        this.escala.uid = crypto.randomUUID()
       }
 
-      await setDoc(doc(db, 'escalas', this.escala.uid),{
-        userUid: this.selectedUserId,
-        nome: user.nome,
-        email: user.email,
-        roles: user.roles,
-        perfil: user.perfil,
-        start_dt: this.escala.start_dt,
-        end_dt: this.escala.end_dt,
-      }, {merge: true})
+      await setDoc(
+        doc(db, 'escalas', this.escala.uid),
+        {
+          userUid: this.selectedUserId,
+          nome: user.nome,
+          email: user.email,
+          roles: user.roles,
+          perfil: user.perfil,
+          start_dt: this.escala.start_dt,
+          end_dt: this.escala.end_dt,
+        },
+        { merge: true },
+      )
 
       this.limparForm()
       this.novaRotaModal = false
@@ -198,16 +246,15 @@ export default {
     },
 
     editarEscala(escala) {
-      this.escala.uid = escala.uid,
-      this.escala.userUid = escala.userUid,
-      this.escala.nome = escala.nome,
-      this.escala.email = escala.email,
-      this.escala.roles = escala.roles,
-      this.escala.perfil = escala.perfil,
-      this.escala.start_dt = escala.start_dt,
-      this.escala.end_dt = escala.end_dt,
-
-      this.selectedUserId = escala.userUid
+      ;((this.escala.uid = escala.uid),
+        (this.escala.userUid = escala.userUid),
+        (this.escala.nome = escala.nome),
+        (this.escala.email = escala.email),
+        (this.escala.roles = escala.roles),
+        (this.escala.perfil = escala.perfil),
+        (this.escala.start_dt = escala.start_dt),
+        (this.escala.end_dt = escala.end_dt),
+        (this.selectedUserId = escala.userUid))
 
       this.novaRotaModal = true
       this.modoEdicao = true
@@ -218,55 +265,55 @@ export default {
       this.escala.end_dt = ''
     },
     async deleteEscala(escala) {
-      this.escala.uid = escala.uid;
-      this.deleteModal = true;
+      this.escala.uid = escala.uid
+      this.deleteModal = true
     },
     async confirmarDelete() {
       await deleteDoc(doc(db, 'escalas', this.escala.uid))
       this.limparForm()
       this.deleteModal = false
     },
-    formatDate(date){
-      const dateObj = new Date(date);
-      const formatedDate = dateObj.toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+    formatDate(date) {
+      const dateObj = new Date(date)
+      const formatedDate = dateObj.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
 
-      return  formatedDate;
+      return formatedDate
     },
-    salvarPoliticaRota(timeout){
-      this.timeout = timeout;
-      this.politicaRotaModal = false;
+    salvarPoliticaRota(timeout) {
+      this.timeout = timeout
+      this.politicaRotaModal = false
     },
-    pagAnterior(){
-      if(this.pagInicio > 0){
-        this.pagInicio -= 5;
-        this.pagFim -= 5;
+    pagAnterior() {
+      if (this.pagInicio > 0) {
+        this.pagInicio -= 5
+        this.pagFim -= 5
       }
     },
-    pagSeguinte(){
-      if(this.pagFim < this.escalas.length){
-        this.pagInicio += 5;
-        this.pagFim += 5;
+    pagSeguinte() {
+      if (this.pagFim < this.escalas.length) {
+        this.pagInicio += 5
+        this.pagFim += 5
       }
     },
   },
   created() {
-      this.getAllUsers();
-      this.getAllEscalas();
-      this.carregarLocalStorage();
+    this.getAllUsers()
+    this.getAllEscalas()
+    this.carregarLocalStorage()
   },
   beforeUnmount() {
-    if(this.unsubscribeUsers){
-      this.unsubscribeUsers();
+    if (this.unsubscribeUsers) {
+      this.unsubscribeUsers()
     }
-    if(this.unsubscribeEscalas){
-      this.unsubscribeEscalas();
+    if (this.unsubscribeEscalas) {
+      this.unsubscribeEscalas()
     }
-  }
+  },
 }
 </script>

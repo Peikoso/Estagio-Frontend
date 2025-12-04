@@ -131,7 +131,7 @@
         <h3>Confirmar Exclusão</h3>
         <p>Tem certeza que deseja excluir este usuário?</p>
         <div class="botoes-confirmacao">
-          <button style="background-color: red;" @click="confirmarDelete()">Sim, Excluir</button>
+          <button style="background-color: #b30d14;" @click="confirmarDelete()">Sim, Excluir</button>
           <button @click="deleteModal = false; limparForm()">Cancelar</button>
         </div>
       </div>
