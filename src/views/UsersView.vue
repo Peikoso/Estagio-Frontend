@@ -274,10 +274,11 @@ export default {
       const token = await getToken();
 
       await api.post(`/users/${user.id}/approve`,
-      { fake: true},
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        { fake: true },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
       this.getAllUsers()
     },

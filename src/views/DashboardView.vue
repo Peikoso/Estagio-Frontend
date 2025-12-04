@@ -248,7 +248,7 @@ export default{
       }
 
       try{
-        await api.put(`/incidents/${this.incidente.id}/action`, { comment: this.novoComentario }, {
+        await api.post(`/incidents/${this.incidente.id}/action`, { comment: this.novoComentario }, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -277,15 +277,15 @@ export default{
       this.incidente.rule = ''
       this.novoComentario = ''
     },
-    pagAnterior(){
+    async pagAnterior(){
       if(this.page > 1){
         this.page--;
-        this.getIncidents();
+        await this.getIncidents();
       }
     },
-    pagSeguinte(){
+    async pagSeguinte(){
       this.page++;
-      this.getIncidents();
+      await this.getIncidents();
     },
     applyFilters() {
       clearTimeout(this.timer);
