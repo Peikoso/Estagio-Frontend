@@ -227,9 +227,9 @@ export default {
     async detalhesIncidente(incidente) {
       this.incidente = await this.getIncidenteById(incidente.id);
 
-      this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId)
-
       this.incidentLogs = await this.getIncidentLogs(incidente.id);
+
+      this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId);
     },
 
     async getIncidenteById(id) {
