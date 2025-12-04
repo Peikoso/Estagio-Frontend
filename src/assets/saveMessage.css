@@ -1,4 +1,19 @@
+.overlay-bloqueio {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;       /* Largura total da tela */
+  height: 100vh;      /* Altura total da tela */
+  background-color: rgba(0, 0, 0, 0.2); /* Fundo transparente ou levemente escuro */
+  z-index: 4999;      /* Fica logo abaixo da mensagem */
+  cursor: not-allowed; /* Opcional: mostra ícone de bloqueio no mouse */
+}
+
 .mensagem-salvo {
+  position: fixed;    /* posição absoluta */
+  top: 20px;             /* distância do topo */
+  left: 50%;
+  transform: translateX(-50%); /* centraliza horizontalmente */
   background-color: #269447;   /* cor de fundo */
   color: white;                 /* texto branco */
   margin: 20px 0;              /* espaçamento externo */
@@ -9,6 +24,7 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* sombra leve */
   animation: fadeOut 3s forwards; /* some depois de 3s */
   align-self: center;           /* centraliza no flex container */
+  z-index: 5000;              /* fica acima de outros elementos */
 }
 
 /* animação opcional para sumir */

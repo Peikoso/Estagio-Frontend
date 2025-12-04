@@ -101,11 +101,11 @@
           <div class="row">
             <div class="col">
               <label for="hora_inicio">Hora Início</label>
-              <input type="time" id="hora_inicio" v-model="regra.hora_inicio">
+              <input type="time" id="hora_inicio" v-model="regra.hora_inicio" step="1">
             </div>
             <div class="col">
               <label for="hora_final">Hora Final</label>
-              <input type="time" id="hora_final" v-model="regra.hora_final">
+              <input type="time" id="hora_final" v-model="regra.hora_final" step="1">
             </div>
           </div>
           <label for="roles">Roles</label>
@@ -171,9 +171,6 @@
 
           <button type="submit">Executar</button>
         </form>
-        <div v-if="sandboxMessage" class="mensagem-salvo">
-          {{ sandbox.resultado }}
-        </div>
       </div>
     </div>
 
@@ -188,6 +185,16 @@
       </div>
     </div>
 
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div style="background-color: red;" v-if="toastMessage && errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+    </div>
+
+
   </div>
 </template>
 
@@ -196,6 +203,7 @@ import play from '@/assets/icons/play.svg';
 import pause from '@/assets/icons/pause.svg';
 import volume_up from '@/assets/icons/volume_up.svg';
 import volume_mute from '@/assets/icons/volume_mute.svg';
+import { sqlValidantion } from '@/services/validators.js';
 
 export default {
   name: 'RulesView',
@@ -211,13 +219,13 @@ export default {
         minuto_atualizacao: 0,
         qtd_erro_max: 0,
         timeout: 0,
-        hora_inicio: '00:00',
-        hora_final: '00:00',
-        roles: [],
+        hora_inicio: '00:00:00',
+        hora_final: '00:00:00',
         notificacao: true,
         silenciar: false,
         executar: false,
-        data_adiar: null
+        data_adiar: null,
+        roles: [],
       },
       regras: [],
       selectedRole: '',
@@ -231,7 +239,9 @@ export default {
         sql: '',
         resultado: '',
       },
-      sandboxMessage: false,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
       play,
       pause,
       volume_up,
@@ -241,6 +251,7 @@ export default {
     }
   },
   methods: {
+    sqlValidantion,
     adicionarRole(){
       const role = this.selectedRole;
       if(!this.regra.roles.includes(role.nome)){
@@ -256,6 +267,11 @@ export default {
       return role ? role.cor : '#bdc3c7';
     },
     salvarRegras() {
+      if (!sqlValidantion(this.regra.sql)) {
+        alert('SQL inválido. Apenas comandos SELECT são permitidos.');
+        return;
+      }
+
       const data = {
         nome: this.regra.nome,
         descricao: this.regra.descricao,
@@ -347,13 +363,13 @@ export default {
       this.regra.nome = '';
       this.regra.descricao = '';
       this.regra.sql = '';
-      this.regra.banco = 'PostgreSQL';
-      this.regra.prioridade = 'Média';
+      this.regra.banco = 'POSTEGRESQL';
+      this.regra.prioridade = 'MEDIUM';
       this.regra.minuto_atualizacao = 0;
       this.regra.qtd_erro_max = 0;
       this.regra.timeout = 0;
-      this.regra.hora_inicio = '00:00';
-      this.regra.hora_final = '00:00';
+      this.regra.hora_inicio = '00:00:00';
+      this.regra.hora_final = '00:00:00';
       this.regra.roles = [];
       this.regra.notificacao = true;
       this.regra.silenciar = false;
@@ -366,12 +382,23 @@ export default {
       this.sandbox.resultado = '';
     },
     executarSandbox(){
-      this.sandbox.resultado = 'Sucesso: A consulta foi executada corretamente.';
-      this.sandboxMessage = true;
+      if (!sqlValidantion(this.sandbox.sql)) {
+        this.toast('SQL inválido. Apenas comandos SELECT são permitidos.', true);
+        return;
+      }
+      this.toast('Sucesso: A consulta foi executada corretamente.', false);
+    },
+    toast(message, isError){
+      this.toastMessage = message;
+      this.showToast = true;
+      if(isError){
+        this.errorMessage = true;
+      }
       setTimeout(() => {
-        this.sandboxMessage = false;
-        this.sandbox.resultado = '';
-      }, 3000);
+        this.showToast = false;
+        this.toastMessage = '';
+        this.errorMessage = false;
+      }, 2500);
 
     },
     pagAnterior(){
