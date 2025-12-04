@@ -404,15 +404,20 @@ export default {
       this.sidebarAberta = !this.sidebarAberta
     },
     async getCanais() {
-      const token = await getToken();
+      try{
+        const token = await getToken();
 
-      const response = await api.get('/channels', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+        const response = await api.get('/channels', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
 
-      this.canais = response.data
+        this.canais = response.data
+      } catch (error) {
+        this.canais = []
+        console.error('Erro ao buscar canais:', error)
+      }
     },
     async salvarPreferencias() {
       const token = await getToken();
@@ -432,6 +437,7 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
 
+        this.toa
       } catch (err) {
         if (err.response && err.response.status === 404) {
           await api.post('/user-preferences', payload, {
@@ -446,44 +452,59 @@ export default {
       this.preferenciaModal = false;
     },
     async getNotifications() {
-      const token = await getToken();
+      try{
+        const token = await getToken();
 
-      const response = await api.get('/notifications/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+        const response = await api.get('/notifications/me', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
 
-      this.notificacoes = response.data
+        this.notificacoes = response.data;
+      } catch (error) {
+        console.error('Erro ao buscar notificações:', error);
+        this.notificacoes = []
+      }
+
     },
     async readNotification(notificationId) {
-      const token = await getToken();
+      try{
+        const token = await getToken();
+        await api.patch(`/notifications/${notificationId}`, {
+          status: 'READED',
+          readAt: new Date().toISOString(),
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-      await api.patch(`/notifications/${notificationId}`, {
-        status: 'READED',
-        readAt: new Date().toISOString(),
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        this.getNotifications()
 
-      this.getNotifications()
+      } catch (error) {
+        console.error('Erro ao marcar notificação como lida:', error)
+      }
     },
     async salvarPerfil() {
-      const token = await getToken();
+      try{
+        const token = await getToken();
 
-      const data = {
-        name: this.userData.nome,
-        email: this.userData.email,
-        phone: this.userData.telefone,
-        picture: null,
-      };
+        const data = {
+          name: this.userData.nome,
+          email: this.userData.email,
+          phone: this.userData.telefone,
+          picture: null,
+        };
 
-      await api.patch('/users/me',data, {
-          headers: { Authorization: `Bearer ${token}` }
-      });
+        await api.patch('/users/me',data, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
 
-      this.perfilModal = false
-      this.getUserInfo()
+        this.perfilModal = false
+        this.getUserInfo()
+
+      } catch (error) {
+        console.error('Erro ao salvar perfil:', error)
+      }
     },
     atualizarAvatar(event) {
       const file = event.target.files[0]

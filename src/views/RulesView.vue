@@ -229,6 +229,8 @@ import pause from '@/assets/icons/pause.svg'
 import volume_up from '@/assets/icons/volume_up.svg'
 import volume_mute from '@/assets/icons/volume_mute.svg'
 import { sqlValidantion } from '@/services/validators.js'
+import { getToken } from '@/services/token'
+import api from '@/services/api'
 
 export default {
   name: 'RulesView',
@@ -405,12 +407,35 @@ export default {
       this.sandbox.sql = ''
       this.sandbox.resultado = ''
     },
-    executarSandbox() {
+    async executarSandbox() {
       if (!sqlValidantion(this.sandbox.sql)) {
         this.toast('SQL inválido. Apenas comandos SELECT são permitidos.', true)
         return
       }
-      this.toast('Sucesso: A consulta foi executada corretamente.', false)
+      if(this.sandbox.sql.trim() === ''){
+        this.toast('O campo SQL não pode estar vazio.', true)
+        return
+      }
+
+      try{
+        const token = await getToken();
+
+        const response = await api.post('/sql-tests', { sql: this.sandbox.sql }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if(response.data.result.includes('ERROR')){
+          this.toast(`${response.data.result}`, true)
+          return
+        }
+
+        this.toast(`${response.data.result}`, false)
+
+      } catch(error){
+        this.toast('Erro ao executar o SQL no sandbox, tente novamente mais tarde.', true)
+        console.error('Error ao executar o SQL no sandbox', error);
+      }
+
     },
     pagAnterior() {
       if (this.pagInicio > 0) {
