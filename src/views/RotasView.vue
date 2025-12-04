@@ -68,16 +68,7 @@
 
     <div class="modal" v-if="novaRotaModal">
       <div class="modal-content">
-        <button
-          class="close-btn"
-          @click="
-            novaRotaModal = false
-            modoEdicao = false
-            this.limparForm()
-          "
-        >
-          &times;
-        </button>
+        <button class="close-btn" @click="novaRotaModal = false; modoEdicao = false; this.limparForm()">&times;</button>
         <form @submit.prevent="createEscala">
           <label for="user">User</label>
           <select v-model="selectedUserId" id="user">
@@ -125,14 +116,7 @@
         <p>Tem certeza que deseja excluir esta escala?</p>
         <div class="botoes-confirmacao">
           <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
-          <button
-            @click="
-              deleteModal = false
-              limparForm()
-            "
-          >
-            Cancelar
-          </button>
+          <button @click="deleteModal = false; limparForm()">Cancelar</button>
         </div>
       </div>
     </div>

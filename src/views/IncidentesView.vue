@@ -45,11 +45,7 @@
             <tr v-for="incidente in incidentes" :key="incidente.id">
               <td data-label="Detalhes" class="actions">
                 <button
-                  @click="
-                    incidenteModal = true
-                    detalhesIncidente(incidente)
-                  "
-                >
+                  @click=" incidenteModal = true; detalhesIncidente(incidente)">
                   Ver
                 </button>
               </td>
@@ -81,12 +77,7 @@
         <button
           class="close-btn"
           style="top: 34px"
-          @click="
-            incidenteModal = false
-            limparIncidente()
-            $router.push({ name: $route.name, query: {} })
-          "
-        >
+          @click="incidenteModal = false; limparIncidente(); $router.push({ name: $route.name, query: {} })">
           &times;
         </button>
         <div class="modal-details">
@@ -162,15 +153,7 @@
 
     <div v-if="comentarioModal" class="modal">
       <div class="modal-content">
-        <button
-          class="close-btn"
-          @click="
-            comentarioModal = false
-            limparComentario()
-          "
-        >
-          &times;
-        </button>
+        <button class="close-btn" @click="comentarioModal = false; limparComentario()">&times;</button>
         <form @submit.prevent="salvarComentario()">
           <label for="comentario">Comentário</label>
           <textarea id="comentario" v-model="novoComentario"></textarea>
@@ -349,6 +332,7 @@ export default {
           },
         )
 
+        this.toast('Incidente reexecutado com sucesso.', false)
         this.getIncidents()
       } catch (error) {
         if (error.status === 401) {
@@ -363,7 +347,7 @@ export default {
 
     buttonStatus(status) {
       if (status === 'OPEN') {
-        return 'button-#b30d14'
+        return 'button-red'
       } else if (status === 'ACK') {
         return 'button-yellow'
       } else {
@@ -388,6 +372,7 @@ export default {
           },
         )
 
+        this.toast('Comentário adicionado com sucesso.', false)
         this.getIncidents()
       } catch (error) {
         if (error.status === 401) {

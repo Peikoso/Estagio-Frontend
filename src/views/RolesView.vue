@@ -51,15 +51,7 @@
 
   <div class="modal" v-if="roleModal">
     <div class="modal-content">
-      <button
-        class="close-btn"
-        @click="
-          roleModal = false
-          this.limparForm()
-        "
-      >
-        &times;
-      </button>
+      <button class="close-btn" @click="roleModal = false; this.limparForm()">&times;</button>
       <form @submit.prevent="salvarRole">
         <h2>Editar Role</h2>
         <label for="name">Nome:</label>
@@ -98,14 +90,7 @@
       <p>Tem certeza que deseja excluir esta role?</p>
       <div class="botoes-confirmacao">
         <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
-        <button
-          @click="
-            deleteModal = false
-            limparForm()
-          "
-        >
-          Cancelar
-        </button>
+        <button @click="deleteModal = false; limparForm()">Cancelar</button>
       </div>
     </div>
   </div>

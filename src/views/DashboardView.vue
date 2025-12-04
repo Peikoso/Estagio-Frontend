@@ -111,14 +111,7 @@
               <td data-label="Prioridade">{{ formatPriority(incidente.priority) }}</td>
               <td data-label="Aberta em">{{ formatDate(incidente.createdAt) }}</td>
               <td data-label="Status" class="actions">
-                <button
-                  :disabled="user.profile === 'viewer'"
-                  class="button-status"
-                  :class="buttonStatus(incidente.status)"
-                  @click="mudarStatus(incidente)"
-                >
-                  {{ incidente.status }}
-                </button>
+                <button :disabled="user.profile === 'viewer'" class="button-status" :class="buttonStatus(incidente.status)" @click="mudarStatus(incidente)">{{ incidente.status }}</button>
               </td>
             </tr>
           </tbody>
@@ -131,15 +124,7 @@
     </div>
     <div v-if="comentarioModal" class="modal">
       <div class="modal-content">
-        <button
-          class="close-btn"
-          @click="
-            comentarioModal = false
-            this.limparIncidente()
-          "
-        >
-          &times;
-        </button>
+        <button class="close-btn" @click="comentarioModal = false; limparIncidente()">&times;</button>
         <form @submit.prevent="adicionarComentario()">
           <label for="comentario">Comentário</label>
           <textarea id="comentario" v-model="novoComentario"></textarea>
@@ -153,11 +138,7 @@
       <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
         {{ toastMessage }}
       </div>
-      <div
-        style="background-color: #b30d14"
-        v-if="toastMessage && errorMessage"
-        class="mensagem-salvo"
-      >
+      <div style="background-color: #b30d14"  v-if="toastMessage && errorMessage" class="mensagem-salvo">
         {{ toastMessage }}
       </div>
     </div>
@@ -252,7 +233,7 @@ export default {
 
     buttonStatus(status) {
       if (status === 'OPEN') {
-        return 'button-#b30d14'
+        return 'button-red'
       } else if (status === 'ACK') {
         return 'button-yellow'
       } else {
@@ -281,6 +262,8 @@ export default {
             headers: { Authorization: `Bearer ${token}` },
           },
         )
+
+        this.toast('Comentário adicionado com sucesso!', false)
       } catch (error) {
         if (error.status === 401) {
           this.toast('Você não tem permissão para realizar esta ação.', true)

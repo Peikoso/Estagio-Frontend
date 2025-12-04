@@ -58,16 +58,7 @@
 
     <div class="modal" v-if="regraModal">
       <div class="modal-content">
-        <button
-          class="close-btn"
-          @click="
-            regraModal = false
-            modoEdicao = false
-            this.limparForm()
-          "
-        >
-          &times;
-        </button>
+        <button class="close-btn" @click="regraModal = false; modoEdicao = false; this.limparForm()">&times;</button>
         <form @submit.prevent="salvarRegras">
           <label for="nome">Nome</label>
           <input type="text" id="nome" placeholder="Nome da regra" v-model="regra.nome" />
@@ -193,15 +184,7 @@
     </div>
     <div v-if="sandboxModal" class="modal">
       <div class="modal-content">
-        <button
-          class="close-btn"
-          @click="
-            sandboxModal = false
-            this.limparSandbox()
-          "
-        >
-          &times;
-        </button>
+        <button class="close-btn" @click="sandboxModal = false; this.limparSandbox()">&times;</button>
         <form @submit.prevent="executarSandbox">
           <label for="sql">SQL</label>
           <textarea id="sql" placeholder="SELECT * FROM ..." v-model="sandbox.sql"></textarea>
@@ -218,12 +201,7 @@
         <p>Tem certeza que deseja excluir esta regra?</p>
         <div class="botoes-confirmacao">
           <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
-          <button
-            @click="
-              deleteModal = false
-              limparForm()
-            "
-          >
+          <button @click="deleteModal = false; limparForm()">
             Cancelar
           </button>
         </div>
