@@ -428,7 +428,7 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        await api.put('/user-preferences', payload, {
+        await api.patch('/user-preferences', payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -459,7 +459,7 @@ export default {
     async readNotification(notificationId) {
       const token = await getToken();
 
-      await api.put(`/notifications/${notificationId}`, {
+      await api.patch(`/notifications/${notificationId}`, {
         status: 'READED',
         readAt: new Date().toISOString(),
       }, {
@@ -478,7 +478,7 @@ export default {
         picture: null,
       };
 
-      await api.put('/users/me',data, {
+      await api.patch('/users/me',data, {
           headers: { Authorization: `Bearer ${token}` }
       });
 

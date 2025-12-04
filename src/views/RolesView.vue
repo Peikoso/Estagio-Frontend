@@ -133,7 +133,7 @@ export default {
         });
 
       }else{
-        await api.put(`/roles/${this.role.id}`, data, {
+        await api.patch(`/roles/${this.role.id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }

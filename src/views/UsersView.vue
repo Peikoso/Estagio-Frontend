@@ -221,7 +221,7 @@ export default {
       };
 
       if (this.modoEdicao) {
-        await api.put(`/users/${this.user.id}`, data, {
+        await api.patch(`/users/${this.user.id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
