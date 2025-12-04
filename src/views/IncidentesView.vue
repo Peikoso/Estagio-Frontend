@@ -227,9 +227,12 @@ export default {
     async detalhesIncidente(incidente) {
       this.incidente = await this.getIncidenteById(incidente.id);
 
+      if(incidente.assignedUserId){
+        this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId);
+      }
+
       this.incidentLogs = await this.getIncidentLogs(incidente.id);
 
-      this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId);
     },
 
     async getIncidenteById(id) {
@@ -395,23 +398,31 @@ export default {
   created() {
     this.getIncidents()
     this.getAllRoles()
-
-    const incidenteId = this.$route.query.incidenteId
-    if (incidenteId) {
-      const incidente = this.incidentes.find(i => i.id == incidenteId)
-      if (incidente) {
-        this.incidenteModal = true
-        this.detalhesIncidente(incidente)
-      }
-    }
   },
   watch: {
-    '$route.query.incidenteId'(novoId) {
-      if (novoId) {
-        const incidente = this.incidentes.find(i => i.id == novoId)
-        if (incidente) {
+    '$route.query.incidenteId': {
+      immediate: true,
+      async handler(novoId) {
+        if (!novoId) {
+          return;
+        }
+        try {
+          const response = await this.getIncidenteById(novoId)
+
           this.incidenteModal = true
-          this.detalhesIncidente(incidente)
+          this.detalhesIncidente(response)
+
+        } catch(error){
+          if(error.response && (error.response.status === 401 || error.response.status === 403)){
+            alert('Você não tem permissão para visualizar este incidente.');
+            return;
+          }
+          if(error.response && error.response.status === 404){
+            alert('Incidente não encontrado.');
+            return;
+          }
+          console.error('Erro ao buscar incidente pelo ID da query:', error);
+          return;
         }
       }
     },

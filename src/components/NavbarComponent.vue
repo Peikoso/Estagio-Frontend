@@ -6,9 +6,9 @@
         <button v-if="!sidebarAberta" class="top-alert" style="background-color: #269447; margin-right: 75px;">
           <img :src="help" @click="helpModal = true" />
         </button>
-        <button v-if="incidentes.length > 0" class="top-alert" @click="notificacaoModal = true">
+        <button v-if="notificacoes.length > 0" class="top-alert" @click="notificacaoModal = true">
           <img :src="notificacaoImg" />
-          <span class="alert-count">{{ incidentes.length }}</span>
+          <span class="alert-count">{{ notificacoes.length }}</span>
         </button>
       </div>
     </header>
@@ -206,27 +206,25 @@
         <div class="modal-details">
           <h2>Notificações</h2>
           <div class="table-responsive">
-            <p v-if="incidentes.length == 0"><strong>Nenhuma Notificação Registrada</strong></p>
-            <table v-if="incidentes.length >= 1">
+            <p v-if="notificacoes.length == 0"><strong>Nenhuma Notificação Registrada</strong></p>
+            <table v-if="notificacoes.length >= 1">
               <thead>
                 <tr>
-                  <th>Incidente ID:</th>
-                  <th>Prioridade</th>
-                  <th>Aberta em</th>
-                  <th>Ação</th>
+                  <th>Título</th>
+                  <th>Menssagem</th>
+                  <th>Enviada em</th>
+                  <th>Visualizar Incidente</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="incidente in incidentes" :key="incidente.id">
-                  <td data-label="ID">{{ incidente.id }}</td>
-                  <td data-label="Prioridade">
-                    {{ regras.find((regra) => regra.id === incidente.regra_id)?.prioridade }}
-                  </td>
-                  <td data-label="Aberta em">{{ incidente.created_at }} minutos</td>
+                <tr v-for="notificacao in notificacoes" :key="notificacao.id">
+                  <td data-label="Título">{{ notificacao.title }}</td>
+                  <td data-label="Menssagem">{{ notificacao.message }}</td>
+                  <td data-label="Enviada em">{{ formatDate(notificacao.sentAt) }}</td>
                   <td class="actions" style="text-align: center">
                     <button
-                      @click="notificacaoModal = false; sidebarAberta = false; this.$router.push({name: 'incidentes',query: { incidenteId: incidente.id }});">
-                      Ir
+                      @click="notificacaoModal = false; sidebarAberta = false; readNotification(notificacao.id); $router.push({name: 'incidentes',query: { incidenteId: notificacao.incidentId }});">
+                      Ver
                     </button>
                   </td>
                 </tr>
@@ -272,6 +270,7 @@ import notificacaoImg from '@/assets/icons/notifications.svg'
 import avatarDefault from '@/assets/icons/avatar-default.svg'
 import help from '@/assets/icons/help.svg'
 import api from '@/services/api.js'
+import { formatDate } from '@/services/format.js'
 
 export default {
   name: 'NavbarComponent',
@@ -294,21 +293,15 @@ export default {
         canais: [],
       },
       canais: [],
-      incidente: {
+      notificacao: {
         id: '',
-        regra_id: '',
-        user_id_ack: '',
-        user_id_closed: '',
+        incidentId: '',
+        userId: '',
+        title: '',
+        message: '',
         status: '',
-        comentario_ack: '',
-        comentario_closed: '',
-        created_at: '',
-        ack_at: '',
-        closed_at: '',
-        logs: [],
       },
-      incidentes: [],
-      regras: [],
+      notificacoes: [],
       preferenciaModal: false,
       perfilModal: false,
       notificacaoModal: false,
@@ -322,6 +315,7 @@ export default {
     }
   },
   methods: {
+    formatDate,
     async getUserInfo() {
       if (auth.currentUser && !auth.currentUser.isAnonymous) {
         const token = await getToken();
@@ -342,15 +336,29 @@ export default {
         this.userData.roles = response.data.roles
         this.userData.foto = response.data.picture || this.avatarDefault
 
-        const preferenciasResponse = await api.get('/user-preferences', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
+        try{
+          const preferenciasResponse = await api.get('/user-preferences', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
 
-        this.preferencia.startTime = preferenciasResponse.data.dndStartTime || '00:00:00'
-        this.preferencia.endTime = preferenciasResponse.data.dndEndTime || '00:00:00'
-        this.preferencia.canais = preferenciasResponse.data.channels.map(channel => channel.id) || []
+          this.preferencia.startTime = preferenciasResponse.data.dndStartTime || '00:00:00'
+          this.preferencia.endTime = preferenciasResponse.data.dndEndTime || '00:00:00'
+          this.preferencia.canais = preferenciasResponse.data.channels.map(channel => channel.id) || []
+
+        } catch (error) {
+          if (error.response && error.response.status === 404) {
+            //Usuário sem preferências, então usamos valores padrão...
+          } else {
+            console.error('Erro ao buscar preferências do usuário:', error)
+          }
+          this.preferencia.startTime = '00:00:00'
+          this.preferencia.endTime = '00:00:00'
+          this.preferencia.canais = []
+        }
+
+
 
       } else if (auth.currentUser.isAnonymous === true) {
         this.userData.id = 'visitante'
@@ -363,7 +371,6 @@ export default {
         this.userData.foto = this.avatarDefault
       }
 
-      localStorage.setItem('userData', JSON.stringify(this.userData))
     },
     clearUserInfo() {
       this.userData = {
@@ -438,10 +445,28 @@ export default {
 
       this.preferenciaModal = false;
     },
-    carregarLocalStorage() {
-      this.regras = JSON.parse(localStorage.getItem('regras')) || []
-      const incidentesData = JSON.parse(localStorage.getItem('incidentes')) || []
-      this.incidentes = incidentesData.filter((incidente) => incidente.status === 'open')
+    async getNotifications() {
+      const token = await getToken();
+
+      const response = await api.get('/notifications/me', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      this.notificacoes = response.data
+    },
+    async readNotification(notificationId) {
+      const token = await getToken();
+
+      await api.put(`/notifications/${notificationId}`, {
+        status: 'READED',
+        readAt: new Date().toISOString(),
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      this.getNotifications()
     },
     async salvarPerfil() {
       const token = await getToken();
@@ -474,7 +499,7 @@ export default {
   created() {
     this.getUserInfo()
     this.getCanais()
-    this.carregarLocalStorage()
+    this.getNotifications()
   },
   beforeUnmount() {
     this.clearUserInfo()
