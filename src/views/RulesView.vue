@@ -11,9 +11,26 @@
       </div>
     </div>
     <div class="view-container">
-      <div>
+      <div class="filtro-container">
         <label class="filtro-label" for="filtro">Filtrar Regras</label>
-        <input type="text" id="filtro" v-model="filtro" placeholder="Digite o nome da regra" />
+        <input type="text" id="filtro" v-model="filtroRegra" placeholder="Digite o nome da regra" />
+        <select id="filtro-database" v-model="filtroDatabase">
+          <option :value="null">Database</option>
+          <option value="POSTGRESQL">PostgreSQL</option>
+          <option value="ORACLE">Oracle</option>
+        </select>
+        <select id="filtro-prioridade" v-model="filtroPrioridade">
+          <option :value="null">Prioridades</option>
+          <option value="LOW">Baixa</option>
+          <option value="MEDIUM">Média</option>
+          <option value="HIGH">Alta</option>
+        </select>
+        <select id="filtroRole" v-model="filtroRole">
+          <option :value="null" selected>Roles</option>
+          <option v-for="(role, index) in roles" :key="index" :value="role.id">
+            {{ role.name }}
+          </option>
+        </select>
       </div>
       <div class="table-responsive">
         <h2 v-if="regras.length == 0">Nenhuma Regra Registrada</h2>
@@ -28,20 +45,20 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="regra in regras.slice(pagInicio, pagFim)" :key="regra.id">
+            <tr v-for="regra in regras" :key="regra.id">
               <td class="regra-nome-descricao">
-                <h4>{{ regra.nome }}</h4>
-                <p>{{ regra.descricao }}</p>
+                <h4>{{ regra.name }}</h4>
+                <p>{{ regra.description }}</p>
               </td>
-              <td data-label="Banco">{{ regra.banco }}</td>
-              <td data-label="Intervalo">{{ regra.minuto_atualizacao }} minutos</td>
-              <td data-label="Prioridade">{{ regra.prioridade }}</td>
+              <td data-label="Banco">{{ regra.databaseType }}</td>
+              <td data-label="Intervalo">{{ (regra.executionIntervalMs / 1000 / 60).toFixed(0) }} minutos</td>
+              <td data-label="Prioridade">{{ regra.priority }}</td>
               <td data-label="Ações" class="actions">
                 <button class="icon-btn" @click="executarRegra(regra)">
-                  <img :src="regra.executar ? pause : play" />
+                  <img :src="regra.isActive ? pause : play" />
                 </button>
                 <button class="icon-btn" @click="silenciarRegra(regra)">
-                  <img :src="regra.silenciar ? volume_mute : volume_up" />
+                  <img :src="regra.silenceMode ? volume_mute : volume_up" />
                 </button>
                 <button @click="editarRegra(regra)">Editar</button>
                 <button @click="excluirRegra(regra)">Excluir</button>
@@ -60,15 +77,15 @@
       <div class="modal-content">
         <button class="close-btn" @click="regraModal = false; modoEdicao = false; this.limparForm()">&times;</button>
         <form @submit.prevent="salvarRegras">
-          <label for="nome">Nome</label>
-          <input type="text" id="nome" placeholder="Nome da regra" v-model="regra.nome" />
+          <label for="name">Nome</label>
+          <input type="text" id="name" placeholder="Nome da regra" v-model="regra.name" />
 
-          <label for="descricao">Descrição</label>
+          <label for="description">Descrição</label>
           <input
             type="text"
-            id="descricao"
+            id="description"
             placeholder="Descreva o propósito da regra"
-            v-model="regra.descricao"
+            v-model="regra.description"
           />
 
           <label for="sql">SQL</label>
@@ -77,49 +94,49 @@
 
           <div class="row">
             <div class="col">
-              <label for="banco">Banco de Dados</label>
-              <select id="banco" v-model="regra.banco">
-                <option value="PostgreSQL">PostgreSQL</option>
-                <option value="Oracle">Oracle</option>
+              <label for="databaseType">Banco de Dados</label>
+              <select id="databaseType" v-model="regra.databaseType">
+                <option value="POSTGRESQL">PostgreSQL</option>
+                <option value="ORACLE">Oracle</option>
               </select>
             </div>
             <div class="col">
-              <label for="prioridade">Prioridade</label>
-              <select id="prioridade" v-model="regra.prioridade">
-                <option value="Baixa">Baixa</option>
-                <option value="Média">Média</option>
-                <option value="Alta">Alta</option>
+              <label for="priority">Prioridade</label>
+              <select id="priority" v-model="regra.priority">
+                <option value="LOW">Baixa</option>
+                <option value="MEDIUM">Média</option>
+                <option value="HIGH">Alta</option>
               </select>
             </div>
           </div>
 
           <div class="row">
             <div class="col">
-              <label for="minuto_atualizacao">Intervalo de Execução (minutos)</label>
+              <label for="executionIntervalMs">Intervalo de Execução (minutos)</label>
               <input
                 type="number"
-                id="minuto_atualizacao"
-                v-model.number="regra.minuto_atualizacao"
+                id="executionIntervalMs"
+                v-model.number="regra.executionIntervalMs"
                 min="0"
               />
             </div>
             <div class="col">
-              <label for="qtd_erro_max">Máx. Erros</label>
-              <input type="number" id="qtd_erro_max" v-model.number="regra.qtd_erro_max" min="0" />
+              <label for="maxErrorCount">Máx. Erros</label>
+              <input type="number" id="maxErrorCount" v-model.number="regra.maxErrorCount" min="0" />
             </div>
           </div>
 
-          <label for="timeout">Timeout (segundos)</label>
-          <input type="number" id="timeout" placeholder="0" v-model="regra.timeout" min="0" />
+          <label for="timeoutMs">Timeout (segundos)</label>
+          <input type="number" id="timeoutMs" placeholder="0" v-model="regra.timeoutMs" min="0" />
 
           <div class="row">
             <div class="col">
-              <label for="hora_inicio">Hora Início</label>
-              <input type="time" id="hora_inicio" v-model="regra.hora_inicio" step="1" />
+              <label for="startTime">Hora Início</label>
+              <input type="time" id="startTime" v-model="regra.startTime" step="1" />
             </div>
             <div class="col">
-              <label for="hora_final">Hora Final</label>
-              <input type="time" id="hora_final" v-model="regra.hora_final" step="1" />
+              <label for="endTime">Hora Final</label>
+              <input type="time" id="endTime" v-model="regra.endTime" step="1" />
             </div>
           </div>
           <label for="roles">Roles</label>
@@ -127,10 +144,10 @@
             <span
               v-for="(role, index) in regra.roles"
               :key="index"
-              :style="{ backgroundColor: getRoleColor(role) }"
+              :style="{ backgroundColor: role.color }"
               class="role-badge"
             >
-              {{ role }}
+              {{ role.name }}
               <button style="all: unset; cursor: pointer" @click="removerRole(index)">
                 &times;
               </button>
@@ -139,7 +156,7 @@
           <select id="roles" v-model="selectedRole">
             <option value="" disabled selected>Selecione uma role</option>
             <option v-for="(role, index) in roles" :key="index" :value="role">
-              {{ role.nome }}
+              {{ role.name }}
             </option>
           </select>
           <button @click.prevent="adicionarRole">Adicionar Role</button>
@@ -147,18 +164,9 @@
           <div class="row">
             <div class="col">
               <div class="switch-container">
-                <span class="switch-label">Notificação</span>
-                <label class="switch">
-                  <input type="checkbox" v-model="regra.notificacao" />
-                  <span class="slider"></span>
-                </label>
-              </div>
-            </div>
-            <div class="col">
-              <div class="switch-container">
                 <span class="switch-label">Silenciar</span>
                 <label class="switch">
-                  <input type="checkbox" v-model="regra.silenciar" />
+                  <input type="checkbox" v-model="regra.silenceMode" />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -167,16 +175,15 @@
               <div class="switch-container">
                 <span class="switch-label">Ativa</span>
                 <label class="switch">
-                  <input type="checkbox" v-model="regra.executar" />
+                  <input type="checkbox" v-model="regra.isActive" />
                   <span class="slider"></span>
                 </label>
               </div>
-              #b30d14
             </div>
           </div>
 
-          <label for="data_adiar">Programar Adiamento</label>
-          <input type="date" id="data_adiar" placeholder="DD/MM/AAAA" v-model="regra.data_adiar" />
+          <label for="postponeDate">Programar Adiamento</label>
+          <input type="date" id="postponeDate" placeholder="DD/MM/AAAA" v-model="regra.postponeDate" />
 
           <button type="submit">Salvar</button>
         </form>
@@ -238,40 +245,42 @@ export default {
     return {
       regra: {
         id: '',
-        nome: '',
-        descricao: '',
+        name: '',
+        description: '',
+        databaseType: 'POSTGRESQL',
         sql: '',
-        banco: 'PostgreSQL',
-        prioridade: 'Média',
-        minuto_atualizacao: 0,
-        qtd_erro_max: 0,
-        timeout: 0,
-        hora_inicio: '00:00:00',
-        hora_final: '00:00:00',
-        notificacao: true,
-        silenciar: false,
-        executar: false,
-        data_adiar: null,
+        priority: 'MEDIUM',
+        executionIntervalMs: 0,
+        maxErrorCount: 0,
+        timeoutMs: 0,
+        startTime: '00:00:00',
+        endTime: '00:00:00',
+        isActive: true,
+        silenceMode: false,
+        postponeDate: null,
+        userCreatorId: '',
         roles: [],
       },
       regras: [],
       selectedRole: '',
       roles: [],
-      filtro: '',
+      filtroRegra: '',
+      filtroDatabase: null,
+      filtroPrioridade: null,
+      filtroRole: null,
       regraModal: false,
       modoEdicao: false,
       deleteModal: false,
       sandboxModal: false,
       sandbox: {
         sql: '',
-        resultado: '',
       },
       play,
       pause,
       volume_up,
       volume_mute,
-      pagInicio: 0,
-      pagFim: 5,
+      page: 1,
+      perPage: 5,
       showToast: false,
       toastMessage: '',
       errorMessage: false,
@@ -279,10 +288,50 @@ export default {
   },
   methods: {
     sqlValidantion,
+    async getRules() {
+      try{
+        const token = await getToken();
+
+        const params = {
+          name: this.filtroRegra || null,
+          databaseType: this.filtroDatabase || null,
+          priority: this.filtroPrioridade || null,
+          roleId: this.filtroRole || null,
+          page: this.page,
+          perPage: this.perPage
+        }
+
+        const response = await api.get('/rules', {
+          headers: {Authorization: `Bearer ${token}`},
+          params: params
+        });
+
+        console.log('Regras carregadas:', response.data);
+
+        this.regras = response.data;
+      } catch(error){
+        console.error('Erro ao carregar as regras:', error);
+      }
+    },
+    async getRoles() {
+      try{
+        const token = await getToken();
+
+        const response = await api.get('/roles', {
+          headers: {Authorization: `Bearer ${token}`}
+        });
+
+        console.log('Roles carregadas:', response.data);
+
+        this.roles = response.data;
+      } catch(error){
+        console.error('Erro ao carregar as roles:', error);
+      }
+    },
     adicionarRole() {
       const role = this.selectedRole
-      if (!this.regra.roles.includes(role.nome)) {
-        this.regra.roles.push(role.nome)
+      if (!this.regra.roles.includes(role.name)) {
+        this.regra.roles.push(role.name)
       }
       this.selectedRole = ''
     },
@@ -290,7 +339,7 @@ export default {
       this.regra.roles.splice(index, 1)
     },
     getRoleColor(roleName) {
-      const role = this.roles.find((r) => r.nome === roleName)
+      const role = this.roles.find((r) => r.name === roleName)
       return role ? role.cor : '#bdc3c7'
     },
     salvarRegras() {
@@ -300,21 +349,20 @@ export default {
       }
 
       const data = {
-        nome: this.regra.nome,
-        descricao: this.regra.descricao,
+        name: this.regra.name,
+        description: this.regra.description,
         sql: this.regra.sql,
-        banco: this.regra.banco,
-        prioridade: this.regra.prioridade,
-        minuto_atualizacao: this.regra.minuto_atualizacao,
-        qtd_erro_max: this.regra.qtd_erro_max,
-        timeout: this.regra.timeout,
-        hora_inicio: this.regra.hora_inicio,
-        hora_final: this.regra.hora_final,
+        databaseType: this.regra.databaseType,
+        priority: this.regra.priority,
+        executionIntervalMs: this.regra.executionIntervalMs,
+        maxErrorCount: this.regra.maxErrorCount,
+        timeoutMs: this.regra.timeoutMs,
+        startTime: this.regra.startTime,
+        endTime: this.regra.endTime,
         roles: this.regra.roles,
-        notificacao: this.regra.notificacao,
-        silenciar: this.regra.silenciar,
-        executar: this.regra.executar,
-        data_adiar: this.regra.data_adiar,
+        silenceMode: this.regra.silenceMode,
+        isActive: this.regra.isActive,
+        postponeDate: this.regra.postponeDate,
       }
 
       if (this.modoEdicao == false) {
@@ -342,28 +390,27 @@ export default {
       this.regraModal = true
 
       this.regra.id = regra.id
-      this.regra.nome = regra.nome
-      this.regra.descricao = regra.descricao
+      this.regra.name = regra.name
+      this.regra.description = regra.description
       this.regra.sql = regra.sql
-      this.regra.banco = regra.banco
-      this.regra.prioridade = regra.prioridade
-      this.regra.minuto_atualizacao = regra.minuto_atualizacao
-      this.regra.qtd_erro_max = regra.qtd_erro_max
-      this.regra.timeout = regra.timeout
-      this.regra.hora_inicio = regra.hora_inicio
-      this.regra.hora_final = regra.hora_final
+      this.regra.databaseType = regra.databaseType
+      this.regra.priority = regra.priority
+      this.regra.executionIntervalMs = (regra.executionIntervalMs / 1000 / 60).toFixed(0)
+      this.regra.maxErrorCount = regra.maxErrorCount
+      this.regra.timeoutMs = (regra.timeoutMs / 1000).toFixed(0)
+      this.regra.startTime = regra.startTime
+      this.regra.endTime = regra.endTime
       this.regra.roles = regra.roles
-      this.regra.notificacao = regra.notificacao
-      this.regra.silenciar = regra.silenciar
-      this.regra.executar = regra.executar
-      this.regra.data_adiar = regra.data_adiar
+      this.regra.silenceMode = regra.silenceMode
+      this.regra.isActive = regra.isActive
+      this.regra.postponeDate = regra.postponeDate
     },
     silenciarRegra(regra) {
-      regra.silenciar = !regra.silenciar
+      regra.silenceMode = !regra.silenceMode
       this.salvarLocalStorageRegras()
     },
     executarRegra(regra) {
-      regra.executar = !regra.executar
+      regra.isActive = !regra.isActive
       this.salvarLocalStorageRegras()
     },
     excluirRegra(regra) {
@@ -377,35 +424,29 @@ export default {
       this.limparForm()
       this.deleteModal = false
     },
-    carregarLocalStorage() {
-      this.regras = JSON.parse(localStorage.getItem('regras')) || []
-      this.roles = JSON.parse(localStorage.getItem('roles')) || []
-    },
     salvarLocalStorageRegras() {
       localStorage.setItem('regras', JSON.stringify(this.regras))
     },
     limparForm() {
       this.regra.id = ''
-      this.regra.nome = ''
-      this.regra.descricao = ''
+      this.regra.name = ''
+      this.regra.description = ''
       this.regra.sql = ''
-      this.regra.banco = 'POSTEGRESQL'
-      this.regra.prioridade = 'MEDIUM'
-      this.regra.minuto_atualizacao = 0
-      this.regra.qtd_erro_max = 0
-      this.regra.timeout = 0
-      this.regra.hora_inicio = '00:00:00'
-      this.regra.hora_final = '00:00:00'
+      this.regra.databaseType = 'POSTEGRESQL'
+      this.regra.priority = 'MEDIUM'
+      this.regra.executionIntervalMs = 0
+      this.regra.maxErrorCount = 0
+      this.regra.timeoutMs = 0
+      this.regra.startTime = '00:00:00'
+      this.regra.endTime = '00:00:00'
       this.regra.roles = []
-      this.regra.notificacao = true
-      this.regra.silenciar = false
-      this.regra.executar = false
-      this.regra.data_adiar = null
+      this.regra.silenceMode = false
+      this.regra.isActive = false
+      this.regra.postponeDate = null
       this.selectedRole = ''
     },
     limparSandbox() {
       this.sandbox.sql = ''
-      this.sandbox.resultado = ''
     },
     async executarSandbox() {
       if (!sqlValidantion(this.sandbox.sql)) {
@@ -463,7 +504,8 @@ export default {
     },
   },
   created() {
-    this.carregarLocalStorage()
+    this.getRules();
+    this.getRoles();
   },
 }
 </script>
