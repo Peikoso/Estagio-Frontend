@@ -255,10 +255,6 @@ export default {
 
         this.incidentes = response.data
       } catch (error) {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-          console.error('Você não tem permissão para visualizar os incidentes.')
-          return;
-        }
         console.error('Erro ao buscar incidentes. Tente novamente.', error)
       }
     },
@@ -272,10 +268,6 @@ export default {
 
         this.roles = response.data
       } catch (error) {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-          console.error('Você não tem permissão para visualizar as roles.', true)
-          return;
-        }
         console.error('Erro ao buscar roles. Tente novamente.', error)
       }
     },
@@ -300,14 +292,6 @@ export default {
 
         return response.data
       } catch (error) {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            console.error('Você não tem permissão para visualizar este incidente.')
-            return
-          }
-        if (error.response && error.response.status === 404) {
-          console.error('Incidente não encontrado.')
-          return
-        }
         console.error('Erro ao buscar incidente. Tente novamente.', error)
       }
     },
@@ -322,10 +306,6 @@ export default {
 
         return response.data
       } catch (error) {
-        if(error.response && (error.response.status === 401 || error.response.status === 403)) {
-          console.error('Você não tem permissão para visualizar os logs do incidente.')
-          return;
-        }
         console.error('Erro ao buscar logs do incidente. Tente novamente', error)
       }
     },
@@ -340,14 +320,6 @@ export default {
 
         return response.data.name
       } catch (error) {
-        if(error.response && (error.response.status === 401 || error.response.status === 403)) {
-          console.error('Você não tem permissão para visualizar o nome do usuário.')
-          return;
-        }
-        if( error.response && error.response.status === 404) {
-          console.error('Usuário não encontrado')
-          return;
-        }
         console.error('Erro ao buscar nome do usuário. Tente novamente', error)
       }
     },

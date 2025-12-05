@@ -187,48 +187,65 @@ export default {
     formatDate,
     formatPriority,
     async getCurrentUser() {
-      const token = await getToken()
-      const response = await api.get('/users/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      this.user = response.data
+      try{
+        const token = await getToken()
+        const response = await api.get('/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        this.user = response.data
+
+      } catch(error){
+        console.error("Erro ao obter o usuário atual:", error);
+      }
     },
     async getIncidents() {
-      const token = await getToken()
+      try{
+        const token = await getToken()
 
-      const params = {
-        status: this.filtroStatus || null,
-        ruleName: this.filtroRegra || null,
-        priority: this.filtroPrioridade || null,
-        roleId: this.filtroRole || null,
-        page: this.page,
-        perPage: this.perPage,
+        const params = {
+          status: this.filtroStatus || null,
+          ruleName: this.filtroRegra || null,
+          priority: this.filtroPrioridade || null,
+          roleId: this.filtroRole || null,
+          page: this.page,
+          perPage: this.perPage,
+        }
+
+        const response = await api.get('/incidents', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params,
+        })
+
+        this.incidentes = response.data
+      } catch(error){
+        console.error("Erro ao obter incidentes:", error);
       }
-
-      const response = await api.get('/incidents', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: params,
-      })
-
-      this.incidentes = response.data
     },
     async getRoles() {
-      const token = await getToken()
+      try{
+        const token = await getToken()
 
-      const response = await api.get('/roles', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+        const response = await api.get('/roles', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-      this.roles = response.data
+        this.roles = response.data
+      } catch(error){
+        console.error("Erro ao obter roles:", error);
+      }
     },
     async getMetrics() {
-      const token = await getToken()
+      try{
+        const token = await getToken()
 
-      const response = await api.get('/metrics/basic', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+        const response = await api.get('/metrics/basic', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-      this.metrics = response.data
+        this.metrics = response.data
+      } catch(error){
+        console.error("Erro ao obter métricas:", error);
+      }
     },
 
     buttonStatus(status) {
@@ -265,7 +282,7 @@ export default {
 
         this.toast('Comentário adicionado com sucesso!', false)
       } catch (error) {
-        if (error.status === 401) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           this.toast('Você não tem permissão para realizar esta ação.', true)
         } else {
           this.toast('Erro ao adicionar comentário. Tente novamente.', true)
