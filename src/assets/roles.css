@@ -13,3 +13,13 @@ td[data-label="Roles"] {
   white-space: nowrap;  /* impede que o texto quebre dentro da tag */
   text-align: center;
 }
+
+.role-badge-close-button {
+  all: unset;
+  cursor: pointer;
+}
+
+.role-badge-close-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

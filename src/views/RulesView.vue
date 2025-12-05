@@ -7,7 +7,7 @@
       </div>
       <div>
         <button @click="sandboxModal = true">SandBox</button>
-        <button @click="regraModal = true">Nova Regra</button>
+        <button @click="regraModal = true" :disabled="user.profile !== 'admin'">Nova Regra</button>
       </div>
     </div>
     <div class="view-container">
@@ -52,16 +52,16 @@
               </td>
               <td data-label="Banco">{{ regra.databaseType }}</td>
               <td data-label="Intervalo">{{ (regra.executionIntervalMs / 1000 / 60).toFixed(0) }} minutos</td>
-              <td data-label="Prioridade">{{ regra.priority }}</td>
+              <td data-label="Prioridade">{{ formatPriority(regra.priority) }}</td>
               <td data-label="Ações" class="actions">
-                <button class="icon-btn" @click="executarRegra(regra)">
+                <button class="icon-btn" @click="executarRegra(regra)" :disabled="isLoading">
                   <img :src="regra.isActive ? pause : play" />
                 </button>
-                <button class="icon-btn" @click="silenciarRegra(regra)">
+                <button class="icon-btn" @click="silenciarRegra(regra.id)" :disabled="isLoading">
                   <img :src="regra.silenceMode ? volume_mute : volume_up" />
                 </button>
                 <button @click="editarRegra(regra)">Editar</button>
-                <button @click="excluirRegra(regra)">Excluir</button>
+                <button @click="deleteRegra(regra)" :disabled="user.profile !== 'admin'">Excluir</button>
               </td>
             </tr>
           </tbody>
@@ -148,18 +148,18 @@
               class="role-badge"
             >
               {{ role.name }}
-              <button style="all: unset; cursor: pointer" @click="removerRole(index)">
+              <button class="role-badge-close-button" @click.prevent="removerRole(index)" :disabled="user.profile !== 'admin'">
                 &times;
               </button>
             </span>
           </div>
-          <select id="roles" v-model="selectedRole">
+          <select id="roles" v-model="selectedRole" :disabled="user.profile !== 'admin'">
             <option value="" disabled selected>Selecione uma role</option>
             <option v-for="(role, index) in roles" :key="index" :value="role">
               {{ role.name }}
             </option>
           </select>
-          <button @click.prevent="adicionarRole">Adicionar Role</button>
+          <button @click.prevent="adicionarRole" :disabled="user.profile !== 'admin'">Adicionar Role</button>
 
           <div class="row">
             <div class="col">
@@ -185,7 +185,7 @@
           <label for="postponeDate">Programar Adiamento</label>
           <input type="date" id="postponeDate" placeholder="DD/MM/AAAA" v-model="regra.postponeDate" />
 
-          <button type="submit">Salvar</button>
+          <button type="submit" :disabled="isLoading">{{isLoading ? 'Salvando...' : 'Salvar'}}</button>
         </form>
       </div>
     </div>
@@ -197,7 +197,7 @@
           <textarea id="sql" placeholder="SELECT * FROM ..." v-model="sandbox.sql"></textarea>
           <p>Apenas comandos SELECT são permitidos</p>
 
-          <button type="submit">Executar</button>
+          <button type="submit" :disabled="isLoading">Executar</button>
         </form>
       </div>
     </div>
@@ -207,7 +207,7 @@
         <h3>Confirmar Exclusão</h3>
         <p>Tem certeza que deseja excluir esta regra?</p>
         <div class="botoes-confirmacao">
-          <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
+          <button style="background-color: #b30d14" @click="confirmarDelete()" :disabled="isLoading">{{isLoading ? 'Excluindo...' : 'Sim, Excluir'}}</button>
           <button @click="deleteModal = false; limparForm()">
             Cancelar
           </button>
@@ -238,6 +238,7 @@ import volume_mute from '@/assets/icons/volume_mute.svg'
 import { sqlValidantion } from '@/services/validators.js'
 import { getToken } from '@/services/token'
 import api from '@/services/api'
+import { formatPriority } from '@/services/format'
 
 export default {
   name: 'RulesView',
@@ -262,6 +263,7 @@ export default {
         roles: [],
       },
       regras: [],
+      user: {},
       selectedRole: '',
       roles: [],
       filtroRegra: '',
@@ -284,10 +286,26 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      isLoading: false,
     }
   },
   methods: {
     sqlValidantion,
+    formatPriority,
+    async getCurrentUser() {
+      try {
+        const token = await getToken();
+
+        const response = await api.get('/users/me', {
+          headers: {Authorization: `Bearer ${token}`}
+        });
+
+        this.user = response.data;
+
+      } catch (error) {
+        console.error('Erro ao carregar o usuário:', error);
+      }
+    },
     async getRules() {
       try{
         const token = await getToken();
@@ -306,8 +324,6 @@ export default {
           params: params
         });
 
-        console.log('Regras carregadas:', response.data);
-
         this.regras = response.data;
       } catch(error){
         console.error('Erro ao carregar as regras:', error);
@@ -321,8 +337,6 @@ export default {
           headers: {Authorization: `Bearer ${token}`}
         });
 
-        console.log('Roles carregadas:', response.data);
-
         this.roles = response.data;
       } catch(error){
         console.error('Erro ao carregar as roles:', error);
@@ -330,60 +344,67 @@ export default {
     },
     adicionarRole() {
       const role = this.selectedRole
-      if (!this.regra.roles.includes(role.name)) {
-        this.regra.roles.push(role.name)
+      if (role && !this.regra.roles.some(r => r.id === role.id)) {
+        this.regra.roles.push(role)
       }
-      this.selectedRole = ''
+
+      this.selectedRole = '';
     },
     removerRole(index) {
       this.regra.roles.splice(index, 1)
     },
-    getRoleColor(roleName) {
-      const role = this.roles.find((r) => r.name === roleName)
-      return role ? role.cor : '#bdc3c7'
-    },
-    salvarRegras() {
+    async salvarRegras() {
+      this.isLoading = true;
+      const token = await getToken();
+
       if (!sqlValidantion(this.regra.sql)) {
         this.toast('SQL inválido. Apenas comandos SELECT são permitidos.', true)
+        this.isLoading = false;
         return
       }
 
-      const data = {
+      const payload = {
         name: this.regra.name,
         description: this.regra.description,
         sql: this.regra.sql,
         databaseType: this.regra.databaseType,
         priority: this.regra.priority,
-        executionIntervalMs: this.regra.executionIntervalMs,
+        executionIntervalMs: this.regra.executionIntervalMs * 1000 * 60,
         maxErrorCount: this.regra.maxErrorCount,
-        timeoutMs: this.regra.timeoutMs,
+        timeoutMs: this.regra.timeoutMs * 1000,
         startTime: this.regra.startTime,
         endTime: this.regra.endTime,
-        roles: this.regra.roles,
+        roles: this.regra.roles.map(role => role.id),
         silenceMode: this.regra.silenceMode,
         isActive: this.regra.isActive,
         postponeDate: this.regra.postponeDate,
       }
 
-      if (this.modoEdicao == false) {
-        const novoData = {
-          id: crypto.randomUUID(),
-          ...data,
-        }
-        this.regras.push(novoData)
-      } else {
-        const novoData = {
-          id: this.regra.id,
-          ...data,
-        }
-        const index = this.regras.findIndex((regra) => regra.id === this.regra.id)
-        this.regras[index] = novoData
-      }
+      try {
+        if(this.modoEdicao){
+          await api.patch(`/rules/${this.regra.id}`, payload, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          this.toast('Regra atualizada com sucesso!', false)
 
-      this.salvarLocalStorageRegras()
-      this.limparForm()
-      this.modoEdicao = false
-      this.regraModal = false
+          return;
+        }
+
+        await api.post('/rules', payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        this.toast('Regra criada com sucesso!', false)
+
+      } catch (error) {
+        console.error('Erro ao salvar a regra:', error)
+        this.toast('Erro ao salvar a regra. Tente novamente mais tarde.', true)
+      } finally {
+        this.limparForm()
+        this.getRules()
+        this.modoEdicao = false
+        this.isLoading = false;
+        this.regraModal = false
+      }
     },
     editarRegra(regra) {
       this.modoEdicao = true
@@ -405,34 +426,69 @@ export default {
       this.regra.isActive = regra.isActive
       this.regra.postponeDate = regra.postponeDate
     },
-    silenciarRegra(regra) {
-      regra.silenceMode = !regra.silenceMode
-      this.salvarLocalStorageRegras()
+    async silenciarRegra(id) {
+      this.isLoading = true;
+      try{
+        const token = await getToken();
+
+        await api.post(`/rules/${id}/toggle-silence`, {fake: true}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+      } catch(error){
+        console.error('Erro ao silenciar/ativar o som da regra:', error);
+      } finally {
+        this.getRules()
+        this.isLoading = false;
+      }
     },
-    executarRegra(regra) {
-      regra.isActive = !regra.isActive
-      this.salvarLocalStorageRegras()
+    async executarRegra(id) {
+      this.isLoading = true;
+      try{
+        const token = await getToken();
+
+        await api.post(`/rules/${id}/toggle-execution`, {fake: true}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch(error){
+        console.error('Erro ao executar/pausar a regra:', error);
+      } finally {
+        this.isLoading = false;
+        this.getRules()
+      }
     },
-    excluirRegra(regra) {
+    deleteRegra(regra) {
       this.regra.id = regra.id
       this.deleteModal = true
     },
-    confirmarDelete() {
-      const index = this.regras.findIndex((r) => r.id === this.regra.id)
-      this.regras.splice(index, 1)
-      this.salvarLocalStorageRegras()
-      this.limparForm()
-      this.deleteModal = false
-    },
-    salvarLocalStorageRegras() {
-      localStorage.setItem('regras', JSON.stringify(this.regras))
+    async confirmarDelete() {
+      this.isLoading = true;
+
+      try{
+        const token = await getToken();
+
+        await api.delete(`/rules/${this.regra.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        this.toast('Regra deletada com sucesso!', false)
+      } catch(error){
+        console.error('Erro ao deletar a regra:', error);
+        this.toast('Erro ao deletar a regra. Tente novamente mais tarde.', true)
+        return;
+      } finally {
+        this.getRules()
+        this.isLoading = false;
+        this.limparForm()
+        this.deleteModal = false
+      }
     },
     limparForm() {
       this.regra.id = ''
       this.regra.name = ''
       this.regra.description = ''
       this.regra.sql = ''
-      this.regra.databaseType = 'POSTEGRESQL'
+      this.regra.databaseType = 'POSTGRESQL'
       this.regra.priority = 'MEDIUM'
       this.regra.executionIntervalMs = 0
       this.regra.maxErrorCount = 0
@@ -449,12 +505,15 @@ export default {
       this.sandbox.sql = ''
     },
     async executarSandbox() {
+      this.isLoading = true;
       if (!sqlValidantion(this.sandbox.sql)) {
         this.toast('SQL inválido. Apenas comandos SELECT são permitidos.', true)
+        this.isLoading = false;
         return
       }
       if(this.sandbox.sql.trim() === ''){
         this.toast('O campo SQL não pode estar vazio.', true)
+        this.isLoading = false;
         return
       }
 
@@ -475,20 +534,18 @@ export default {
       } catch(error){
         this.toast('Erro ao executar o SQL no sandbox, tente novamente mais tarde.', true)
         console.error('Error ao executar o SQL no sandbox', error);
+      } finally {
+        this.isLoading = false;
       }
 
     },
     pagAnterior() {
-      if (this.pagInicio > 0) {
-        this.pagInicio -= 5
-        this.pagFim -= 5
-      }
+      this.page--
+      this.getRules()
     },
     pagSeguinte() {
-      if (this.pagFim < this.regras.length) {
-        this.pagInicio += 5
-        this.pagFim += 5
-      }
+      this.page++
+      this.getRules()
     },
     toast(message, isError) {
       this.toastMessage = message
@@ -504,6 +561,7 @@ export default {
     },
   },
   created() {
+    this.getCurrentUser();
     this.getRules();
     this.getRoles();
   },

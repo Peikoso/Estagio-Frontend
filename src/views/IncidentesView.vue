@@ -54,7 +54,7 @@
               <td data-label="Aberta em">{{ formatDate(incidente.createdAt) }}</td>
               <td data-label="Status" class="actions">
                 <button
-                  :disabled="user.perfil === 'viewer'"
+                  :disabled="user.profile === 'viewer'"
                   class="button-status"
                   :class="buttonStatus(incidente.status)"
                   @click="statusIncidente(incidente)"
@@ -93,7 +93,7 @@
         </div>
         <div style="justify-content: center; display: flex; margin: 10px">
           <button
-            :disabled="user.perfil === 'viewer'"
+            :disabled="user.profile === 'viewer'"
             class="button-status"
             :class="buttonStatus(incidente.status)"
             @click="statusIncidente(incidente)"
@@ -101,7 +101,7 @@
             {{ incidente.status }}
           </button>
           <button
-            :disabled="user.perfil === 'viewer'"
+            :disabled="user.profile === 'viewer'"
             class="button-status"
             style="width: 90px"
             @click="reexecuteIncidente(incidente)"
@@ -117,7 +117,7 @@
               {{ user.email }}
             </option>
           </select>
-          <button class="button-status" style="margin: 10px" @click="escalonarIncidente">
+          <button class="button-status" style="margin: 10px" @click="escalonarIncidente" :disabled="user.profile !== 'admin'">
             Salvar
           </button>
         </div>
@@ -235,6 +235,19 @@ export default {
   methods: {
     formatDate,
     formatPriority,
+    async getCurrentUser() {
+      try{
+        const token = await getToken()
+
+        const response = await api.get('/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        this.user = response.data
+      } catch (error) {
+        console.error('Erro ao buscar usuário atual. Tente novamente.', error)
+      }
+    },
     async getIncidents() {
       try{
         const token = await getToken()
@@ -471,6 +484,7 @@ export default {
     },
   },
   created() {
+    this.getCurrentUser()
     this.getIncidents()
     this.getAllRoles()
   },

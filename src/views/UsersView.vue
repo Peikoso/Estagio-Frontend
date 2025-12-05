@@ -105,7 +105,7 @@
             :style="{ backgroundColor: role.color }"
             class="role-badge">
               {{ role.name }}
-              <button style="all: unset; cursor: pointer;" @click="removerRole(index)">&times;</button>
+              <button class="role-badge-close-button" @click="removerRole(index)">&times;</button>
             </span>
           </div>
           <select id="roles" v-model="selectedRole">
@@ -183,7 +183,7 @@ export default {
         this.user.roles.push(role);
       }
 
-      this.selectedRole = ""
+      this.selectedRole = '';
     },
     removerRole(index){
       this.user.roles.splice(index, 1);
