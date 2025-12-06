@@ -312,6 +312,8 @@ export default {
       logo,
       notificacaoImg,
       help,
+      pollingTime: 5000, // 5 segundos
+      pollingInterval: null,
     }
   },
   methods: {
@@ -516,13 +518,20 @@ export default {
         reader.readAsDataURL(file)
       }
     },
+    startPolling() {
+      this.pollingInterval = setInterval(() => {
+        this.getNotifications()
+      }, this.pollingTime)
+    },
   },
   created() {
     this.getUserInfo()
     this.getCanais()
     this.getNotifications()
+    this.startPolling()
   },
   beforeUnmount() {
+    clearInterval(this.pollingInterval)
     this.clearUserInfo()
   },
 }

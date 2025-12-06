@@ -54,7 +54,7 @@
               <td data-label="Intervalo">{{ (regra.executionIntervalMs / 1000 / 60).toFixed(0) }} minutos</td>
               <td data-label="Prioridade">{{ formatPriority(regra.priority) }}</td>
               <td data-label="Ações" class="actions">
-                <button class="icon-btn" @click="executarRegra(regra)" :disabled="isLoading">
+                <button class="icon-btn" @click="executarRegra(regra.id)" :disabled="isLoading">
                   <img :src="regra.isActive ? pause : play" />
                 </button>
                 <button class="icon-btn" @click="silenciarRegra(regra.id)" :disabled="isLoading">
@@ -78,7 +78,7 @@
         <button class="close-btn" @click="regraModal = false; modoEdicao = false; this.limparForm()">&times;</button>
         <form @submit.prevent="salvarRegras">
           <label for="name">Nome</label>
-          <input type="text" id="name" placeholder="Nome da regra" v-model="regra.name" />
+          <input type="text" id="name" placeholder="Nome da regra" v-model="regra.name" minlength="1" maxlength="100" required />
 
           <label for="description">Descrição</label>
           <input
@@ -86,23 +86,26 @@
             id="description"
             placeholder="Descreva o propósito da regra"
             v-model="regra.description"
+            minlength="1"
+            maxlength="255"
+            required
           />
 
           <label for="sql">SQL</label>
-          <textarea id="sql" placeholder="SELECT * FROM ..." v-model="regra.sql"></textarea>
+          <textarea id="sql" placeholder="SELECT * FROM ..." v-model="regra.sql" required></textarea>
           <p>Apenas comandos SELECT são permitidos</p>
 
           <div class="row">
             <div class="col">
               <label for="databaseType">Banco de Dados</label>
-              <select id="databaseType" v-model="regra.databaseType">
+              <select id="databaseType" v-model="regra.databaseType" required>
                 <option value="POSTGRESQL">PostgreSQL</option>
                 <option value="ORACLE">Oracle</option>
               </select>
             </div>
             <div class="col">
               <label for="priority">Prioridade</label>
-              <select id="priority" v-model="regra.priority">
+              <select id="priority" v-model="regra.priority" required>
                 <option value="LOW">Baixa</option>
                 <option value="MEDIUM">Média</option>
                 <option value="HIGH">Alta</option>
@@ -117,26 +120,28 @@
                 type="number"
                 id="executionIntervalMs"
                 v-model.number="regra.executionIntervalMs"
-                min="0"
+                min="1"
+                max="99999"
+                required
               />
             </div>
             <div class="col">
               <label for="maxErrorCount">Máx. Erros</label>
-              <input type="number" id="maxErrorCount" v-model.number="regra.maxErrorCount" min="0" />
+              <input type="number" id="maxErrorCount" v-model.number="regra.maxErrorCount" min="1" max="99999" required/>
             </div>
           </div>
 
           <label for="timeoutMs">Timeout (segundos)</label>
-          <input type="number" id="timeoutMs" placeholder="0" v-model="regra.timeoutMs" min="0" />
+          <input type="number" id="timeoutMs" placeholder="0" v-model="regra.timeoutMs" min="1" max="99999" required/>
 
           <div class="row">
             <div class="col">
               <label for="startTime">Hora Início</label>
-              <input type="time" id="startTime" v-model="regra.startTime" step="1" />
+              <input type="time" id="startTime" v-model="regra.startTime" step="1" required/>
             </div>
             <div class="col">
               <label for="endTime">Hora Final</label>
-              <input type="time" id="endTime" v-model="regra.endTime" step="1" />
+              <input type="time" id="endTime" v-model="regra.endTime" step="1" required/>
             </div>
           </div>
           <label for="roles">Roles</label>
@@ -194,7 +199,7 @@
         <button class="close-btn" @click="sandboxModal = false; this.limparSandbox()">&times;</button>
         <form @submit.prevent="executarSandbox">
           <label for="sql">SQL</label>
-          <textarea id="sql" placeholder="SELECT * FROM ..." v-model="sandbox.sql"></textarea>
+          <textarea id="sql" placeholder="SELECT * FROM ..." v-model="sandbox.sql" required></textarea>
           <p>Apenas comandos SELECT são permitidos</p>
 
           <button type="submit" :disabled="isLoading">Executar</button>
@@ -255,7 +260,7 @@ export default {
         maxErrorCount: 0,
         timeoutMs: 0,
         startTime: '00:00:00',
-        endTime: '00:00:00',
+        endTime: '23:59:59',
         isActive: true,
         silenceMode: false,
         postponeDate: null,
@@ -361,6 +366,20 @@ export default {
         this.toast('SQL inválido. Apenas comandos SELECT são permitidos.', true)
         this.isLoading = false;
         return
+      }
+      if(this.regra.roles.length === 0) {
+        this.toast('Adicione ao menos uma role à regra.', true)
+        this.isLoading = false;
+        return
+      }
+      if(this.regra.postponeDate){
+        const hoje = new Date();
+        const dataPostergada = new Date(this.regra.postponeDate);
+        if(dataPostergada < hoje){
+          this.toast('A data de adiamento deve ser futura.', true)
+          this.isLoading = false;
+          return
+        }
       }
 
       const payload = {

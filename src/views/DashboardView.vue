@@ -127,9 +127,9 @@
         <button class="close-btn" @click="comentarioModal = false; limparIncidente()">&times;</button>
         <form @submit.prevent="adicionarComentario()">
           <label for="comentario">Comentário</label>
-          <textarea id="comentario" v-model="novoComentario"></textarea>
+          <textarea id="comentario" v-model="novoComentario" required></textarea>
           <br /><br />
-          <button type="submit">Salvar</button>
+          <button type="submit" :disabled="isLoading">{{isLoading ? 'Carregando...' : 'Salvar'}}</button>
         </form>
       </div>
     </div>
@@ -180,6 +180,9 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      isLoading: false,
+      pollingTime: 5000, // 5 segundos
+      pollingInterval: null,
     }
   },
 
@@ -264,10 +267,12 @@ export default {
       }
     },
     async adicionarComentario() {
+      this.isLoading = true
       const token = await getToken()
 
       if (!this.novoComentario.trim()) {
         this.toast('O comentário não pode ser vazio.', true)
+        this.isLoading = false
         return
       }
 
@@ -284,15 +289,17 @@ export default {
       } catch (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           this.toast('Você não tem permissão para realizar esta ação.', true)
-        } else {
-          this.toast('Erro ao adicionar comentário. Tente novamente.', true)
+          return;
         }
+        this.toast('Erro ao adicionar comentário. Tente novamente.', true)
+      } finally {
+        this.getIncidents()
+        this.getMetrics()
+        this.comentarioModal = false
+        this.limparIncidente()
+        this.isLoading = false
       }
 
-      this.getIncidents()
-      this.getMetrics()
-      this.comentarioModal = false
-      this.limparIncidente()
     },
     limparIncidente() {
       this.incidente.id = ''
@@ -336,12 +343,22 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
+    startPolling() {
+      this.pollingInterval = setInterval(() => {
+        this.getIncidents()
+        this.getMetrics()
+      }, this.pollingTime)
+    },
   },
   created() {
     this.getCurrentUser()
     this.getIncidents()
     this.getRoles()
     this.getMetrics()
+    this.startPolling()
+  },
+  beforeUnmount() {
+    clearInterval(this.pollingInterval);
   },
   watch: {
     filtroRegra() {

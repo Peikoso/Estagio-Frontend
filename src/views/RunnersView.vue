@@ -4,100 +4,110 @@
         <h3>Gestão de Runners</h3>
         <p>Configure e gerencie os runners de monitoramento</p>
       </div>
-      <div>
-        <button @click="startRunners">{{ buttonStart ? 'Parar' : 'Iniciar' }} Runners</button>
-      </div>
     </div>
-
-    <div class="small-views">
-      <div class="small-view-container">
-        <div>
-          <h3>Runners Ativos</h3>
-          <br><br>
-          <h3>{{ activeRunners.length }}</h3>
-          <br>
-          <br>
-          <p>Runners em operação</p>
-        </div>
-      </div>
-      <div class="small-view-container">
-        <div>
-          <h3>Runners Inativos</h3>
-          <br><br>
-          <h3>{{ inactiveRunners.length }}</h3>
-          <br>
-          <br>
-          <p>Runners não estão em operação</p>
-        </div>
-      </div>
-    </div>
-
     <div class="view-container">
-      <p>Runners Em Execução</p>
-      <div>
-        <label class="filtro-label" for="filtro">Filtrar Runners</label>
-        <input type="text" id="filtro" v-model="filtro" placeholder="Pesquise por regra">
+      <p>Runners</p>
+      <div class="filtro-container">
+        <input type="text" id="filtro" v-model="filtroRegra" placeholder="Digite o nome da regra" />
+        <select id="filtro-status" v-model="filtroStatus">
+          <option :value="null">Status</option>
+          <option value="IDLE">IDLE</option>
+          <option value="SCHEDULED">Agendado</option>
+          <option value="RUNNING">Executando</option>
+          <option value="FAILED">Falhou</option>
+        </select>
+        <select id="filtro-prioridade" v-model="filtroPrioridade">
+          <option :value="null">Prioridades</option>
+          <option value="LOW">Baixa</option>
+          <option value="MEDIUM">Média</option>
+          <option value="HIGH">Alta</option>
+        </select>
+        <select id="filtro-database" v-model="filtroDatabase">
+          <option :value="null">Database</option>
+          <option value="POSTGRESQL">PostgreSQL</option>
+          <option value="ORACLE">Oracle</option>
+        </select>
       </div>
       <div class="table-responsive">
-        <h2 v-if="activeRunners.length === 0">Nenhum Runner em Execução</h2>
-        <table  v-if="activeRunners.length >= 1">
+        <h2 v-if="runners.length === 0">Nenhum Runner encontrado.</h2>
+        <table  v-if="runners.length >= 1">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Status</th>
               <th>Regra</th>
               <th>Prioridade</th>
+              <th>Database</th>
               <th>Ciclo de Execução</th>
+              <th>Última Execução</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="runner in activeRunners.slice(pagInicioOn, pagFimOn)" :key="runner.id">
-              <td data-label="ID">{{ runner.id }}</td>
-              <td data-label="Regra">{{ regras.find(regra => regra.id === runner.regra_id)?.nome }}</td>
-              <td data-label="Prioridade">{{ regras.find(regra => regra.id === runner.regra_id)?.prioridade }}</td>
-              <td data-label="Ciclo de Execução">{{ regras.find(regra => regra.id === runner.regra_id)?.minuto_atualizacao  }} minutos</td>
-              <td class="actions"><button @click="pararRunner(runner)">Parar</button></td>
+            <tr v-for="runner in runners" :key="runner.id">
+              <td data-label="Status">{{ runner.status }}</td>
+              <td data-label="Regra">{{ runner.rule.name }}</td>
+              <td data-label="Prioridade">{{ formatPriority(runner.rule.priority) }}</td>
+              <td data-label="Database">{{ runner.rule.database_type }}</td>
+              <td data-label="Ciclo de Execução">{{ (runner.rule.execution_interval_ms / 1000 / 60).toFixed(0) }} minutos</td>
+              <td data-label="Última Execução">{{ runner.lastRunAt ? formatDate(runner.lastRunAt) : 'Nunca executado' }}</td>
+              <td class="actions"><button @click="toggleRunner(runner.ruleId)" :disabled="isLoading">{{ runner.rule.is_active ? 'Parar' : 'Iniciar' }}</button></td>
             </tr>
           </tbody>
         </table>
         <div style="display: flex; justify-content: center; margin-top: 20px;">
-          <button @click="pagAnteriorOn">Anterior</button>
-          <button @click="pagSeguinteOn">Seguinte</button>
+          <button @click="pagAnteriorRunners">Anterior</button>
+          <button @click="pagSeguinteRunners">Seguinte</button>
         </div>
       </div>
     </div>
     <br>
     <div class="view-container">
-      <p>Runners Pausadas</p>
-      <div>
-        <label class="filtro-label" for="filtro">Filtrar Runners</label>
-        <input type="text" id="filtro" v-model="filtro" placeholder="Pesquise por regra">
+      <p>Fila Runners</p>
+      <div class="filtro-container">
+        <input type="text" id="filtro" v-model="filtroRegraQueue" placeholder="Digite o nome da regra" />
+        <select id="filtro-status" v-model="filtroStatusQueue">
+          <option :value="null">Status</option>
+          <option value="PENDING">Pendente</option>
+          <option value="PROCESSING">Processando</option>
+          <option value="COMPLETED">Concluído</option>
+          <option value="FAILED">Falhou</option>
+        </select>
+        <select id="filtro-prioridade" v-model="filtroPrioridadeQueue">
+          <option :value="null">Prioridades</option>
+          <option value="LOW">Baixa</option>
+          <option value="MEDIUM">Média</option>
+          <option value="HIGH">Alta</option>
+        </select>
       </div>
       <div class="table-responsive">
-        <h2 v-if="inactiveRunners.length === 0">Nenhum Runner em Pausa</h2>
-        <table  v-if="inactiveRunners.length >= 1">
+        <h2 v-if="runnerQueue.length === 0">Nenhum Runner na fila.</h2>
+        <table  v-if="runnerQueue.length >= 1">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Status</th>
               <th>Regra</th>
               <th>Prioridade</th>
-              <th>Ciclo de Execução</th>
-              <th>Ações</th>
+              <th>Agendado Para</th>
+              <th>Iniciado Em</th>
+              <th>Terminou Em</th>
+              <th>Tentativas</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="runner in inactiveRunners.slice(pagInicioOff, pagFimOff)" :key="runner.id">
-              <td data-label="ID">{{ runner.id }}</td>
-              <td data-label="Regra">{{ regras.find(regra => regra.id === runner.regra_id)?.nome }}</td>
-              <td data-label="Prioridade">{{ regras.find(regra => regra.id === runner.regra_id)?.prioridade }}</td>
-              <td data-label="Ciclo de Execução">{{ regras.find(regra => regra.id === runner.regra_id)?.minuto_atualizacao  }} minutos</td>
-              <td class="actions"><button @click="iniciarRunner(runner)">Iniciar</button></td>
+            <tr v-for="job in runnerQueue" :key="job.id">
+              <td data-label="Status">{{ job.status }}</td>
+              <td data-label="Regra">{{ job.rule.name }}</td>
+              <td data-label="Prioridade">{{ formatPriority(job.rule.priority) }}</td>
+              <td data-label="Agendado Para">{{ formatDate(job.scheduledFor) }}</td>
+              <td data-label="Iniciado Em">{{ job.startedAt ? formatDate(job.startedAt) : 'N/A' }}</td>
+              <td data-label="Terminou Em">{{ job.finishedAt ? formatDate(job.finishedAt) : 'N/A' }}</td>
+              <td data-label="Tentativas">{{ job.attemptCount }}</td>
             </tr>
           </tbody>
         </table>
         <div style="display: flex; justify-content: center; margin-top: 20px;">
-          <button @click="pagAnteriorOff">Anterior</button>
-          <button @click="pagSeguinteOff">Seguinte</button>
+          <button @click="pagAnteriorQueue">Anterior</button>
+          <button @click="pagSeguinteQueue">Seguinte</button>
         </div>
       </div>
     </div>
@@ -105,113 +115,182 @@
 </template>
 
 <script>
+import api from '@/services/api';
+import { formatDate, formatPriority } from '@/services/format';
+import { getToken } from '@/services/token';
+
 export default {
   data() {
     return {
-      runner: {
-        id: '',
-        ativo: '',
-        regra_id: '',
-      },
-      regrasAtivas: [],
+      user: {},
       runners: [],
-      filtro: '',
-      activeRunners: [],
-      inactiveRunners: [],
-      regras: [],
-      startRunner: false,
-      buttonStart: false,
-      pagInicioOn: 0,
-      pagFimOn: 5,
-      pagInicioOff: 0,
-      pagFimOff: 5,
+      runnerQueue: [],
+      filtroRegra: '',
+      filtroStatus: null,
+      filtroPrioridade: null,
+      filtroDatabase: null,
+      filtroRegraQueue: '',
+      filtroStatusQueue: null,
+      filtroPrioridadeQueue: null,
+      pageRunners: 1,
+      perPageRunners: 5,
+      pageQueue: 1,
+      perPageQueue: 5,
+      isLoading: false,
+      pollingTime: 5000, // 5 segundos
+      pollingInterval: null,
     };
   },
   methods: {
-    startRunners() {
-      this.startRunner = !this.startRunner;
-      this.buttonStart = !this.buttonStart;
+    formatDate,
+    formatPriority,
+    async getCurrentUser() {
+      const token = await getToken();
 
-      if (this.startRunner) {
-        this.inactiveRunners.forEach(runner => {
-          this.iniciarRunner(runner);
+      try{
+        const response = await api.get('/users/me', {
+          headers: { Authorization: `Bearer ${token}` }
         });
+
+        this.user = response.data;
+
+      } catch (error) {
+        console.error('Erro ao obter o utilizador atual:', error);
       }
-      if (!this.startRunner) {
-        this.activeRunners.forEach(runner => {
-          this.pararRunner(runner);
+    },
+    async getRunners() {
+      const token = await getToken();
+
+      const params = {
+        ruleName: this.filtroRegra || null,
+        status: this.filtroStatus || null,
+        priority: this.filtroPrioridade || null,
+        databaseType: this.filtroDatabase || null,
+        page: this.pageRunners,
+        perPage: this.perPageRunners,
+      };
+
+      try {
+        const response = await api.get('/runners', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params
         });
-      }
 
-    },
-    pararRunner(runner) {
-      const data = {
-        id: runner.id,
-        ativo: 'inactive',
-        regra_id: runner.regra_id,
-      }
-      const index = this.runners.findIndex(r => r.id === runner.id);
-      this.runners[index] = data;
+        this.runners = response.data;
 
-      this.activeRunners = this.activeRunners.filter(r => r.id !== runner.id);
-      this.inactiveRunners.push(runner);
-      this.salvarLocalStorage();
-    },
-    iniciarRunner(runner) {
-      const data = {
-        id: runner.id,
-        ativo: 'active',
-        regra_id: runner.regra_id,
+      } catch (error) {
+        console.error('Erro ao obter os runners:', error);
       }
-      const index = this.runners.findIndex(r => r.id === runner.id);
-      this.runners[index] = data;
+    },
+    async getRunnerQueue() {
+      const token = await getToken();
 
-      this.inactiveRunners = this.inactiveRunners.filter(r => r.id !== runner.id);
-      this.activeRunners.push(runner);
-      this.salvarLocalStorage();
-    },
-    salvarLocalStorage() {
-      localStorage.setItem('runners', JSON.stringify(this.runners));
-    },
-    carregarLocalStorage() {
-      this.regras = JSON.parse(localStorage.getItem('regras')) || [];
-      this.runners = JSON.parse(localStorage.getItem('runners')) || [];
+      const params = {
+        ruleName: this.filtroRegraQueue || null,
+        status: this.filtroStatusQueue || null,
+        rulePriority: this.filtroPrioridadeQueue || null,
+        page: this.pageQueue,
+        perPage: this.perPageQueue,
+      };
 
-      this.regrasAtivas = this.runners.filter(runner => {
-        const runners = this.regras.some(regra => regra.executar === true && regra.id === runner.regra_id);
-        return runners;
-      });
+      try {
+        const response = await api.get('/runners/queue', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params
+        });
 
-      this.activeRunners = this.regrasAtivas.filter(runner => runner.ativo === 'active');
-      this.inactiveRunners = this.regrasAtivas.filter(runner => runner.ativo === 'inactive');
-    },
-    pagAnteriorOn(){
-      if(this.pagInicioOn > 0){
-        this.pagInicioOn -= 5;
-        this.pagFimOn -= 5;
+        this.runnerQueue = response.data;
+
+      } catch (error) {
+        console.error('Erro ao obter a fila de runners:', error);
       }
     },
-    pagSeguinteOn(){
-      if(this.pagFimOn < this.activeRunners.length){
-        this.pagInicioOn += 5;
-        this.pagFimOn += 5;
+    async toggleRunner(ruleId) {
+      this.isLoading = true;
+      try{
+        const token = await getToken();
+
+        await api.post(`/rules/${ruleId}/toggle-execution`, {fake: true}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch(error){
+        console.error('Erro ao executar/pausar a regra:', error);
+      } finally {
+        this.isLoading = false;
+        this.getRunners()
       }
     },
-    pagAnteriorOff(){
-      if(this.pagInicioOff > 0){
-        this.pagInicioOff -= 5;
-        this.pagFimOff -= 5;
-      }
+    pagAnteriorRunners(){
+      this.pageRunners--;
+      this.getRunners();
     },
-    pagSeguinteOff(){
-      if(this.pagFimOff < this.inactiveRunners.length){
-        this.pagInicioOff += 5;
-        this.pagFimOff += 5;
-      }
+    pagSeguinteRunners(){
+      this.pageRunners++;
+      this.getRunners();
     },
+    pagAnteriorQueue(){
+      this.pageQueue--;
+      this.getRunnerQueue();
+    },
+    pagSeguinteQueue(){
+      this.pageQueue++;
+      this.getRunnerQueue();
+    },
+    applyFiltersRunners() {
+      clearTimeout(this.timer)
+
+      this.timer = setTimeout(() => {
+        this.pageRunners = 1
+        this.getRunners()
+      }, 500) // 500ms = meio segundo
+    },
+    applyFiltersQueue() {
+      clearTimeout(this.timer)
+
+      this.timer = setTimeout(() => {
+        this.pageQueue = 1
+        this.getRunnerQueue()
+      }, 500) // 500ms = meio segundo
+    },
+    startPolling(){
+      this.pollingInterval = setInterval(() => {
+        this.getRunners();
+        this.getRunnerQueue();
+      }, this.pollingTime);
+    }
+
   },
   created() {
-    this.carregarLocalStorage();
+    this.getCurrentUser();
+    this.getRunners();
+    this.getRunnerQueue();
+    this.startPolling();
   },
+  beforeUnmount() {
+    clearInterval(this.pollingInterval);
+  },
+  watch:{
+    filtroRegra(){
+      this.applyFiltersRunners();
+    },
+    filtroStatus(){
+      this.applyFiltersRunners();
+    },
+    filtroPrioridade(){
+      this.applyFiltersRunners();
+    },
+    filtroDatabase(){
+      this.applyFiltersRunners();
+    },
+    filtroRegraQueue(){
+      this.applyFiltersQueue();
+    },
+    filtroStatusQueue(){
+      this.applyFiltersQueue();
+    },
+    filtroPrioridadeQueue(){
+      this.applyFiltersQueue();
+    },
+  }
 };
 </script>

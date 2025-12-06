@@ -156,9 +156,9 @@
         <button class="close-btn" @click="comentarioModal = false; limparComentario()">&times;</button>
         <form @submit.prevent="salvarComentario()">
           <label for="comentario">Comentário</label>
-          <textarea id="comentario" v-model="novoComentario"></textarea>
+          <textarea id="comentario" v-model="novoComentario" required></textarea>
           <br /><br />
-          <button type="submit">Salvar</button>
+          <button type="submit" :disabled="isLoading">{{isLoading ? 'Carregando...' : 'Salvar'}}</button>
         </form>
       </div>
     </div>
@@ -169,7 +169,7 @@
         <div>
           <h2>Reexecutar Regra</h2>
           <p>Tem certeza que deseja reexecutar a regra?</p>
-          <button @click="confirmReexecuteIncidente()">Sim</button>
+          <button @click="confirmReexecuteIncidente()" :disabled="isLoading">{{isLoading ? 'Carregando...' : 'Sim'}}</button>
           <button style="background-color: #b30d14" @click="reexecuteModal = false">Não</button>
         </div>
       </div>
@@ -230,6 +230,7 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      isLoading: false,
     }
   },
   methods: {
@@ -354,6 +355,7 @@ export default {
     },
 
     async confirmReexecuteIncidente() {
+      this.isLoading = true
       const token = await getToken()
 
       try {
@@ -374,6 +376,8 @@ export default {
         }
         this.toast('Erro ao reexecutar incidente. Tente novamente.', true)
 
+      } finally {
+        this.isLoading = false
       }
 
       this.reexecuteModal = false
@@ -390,10 +394,12 @@ export default {
     },
 
     async salvarComentario() {
+      this.isLoading = true
       const token = await getToken()
 
       if (!this.novoComentario.trim()) {
         this.toast('O comentário não pode ser vazio.', true)
+        this.isLoading = false
         return
       }
 
@@ -417,6 +423,7 @@ export default {
       } finally {
         this.limparComentario()
         this.detalhesIncidente(this.incidente)
+        this.isLoading = false
         this.comentarioModal = false
       }
     },
