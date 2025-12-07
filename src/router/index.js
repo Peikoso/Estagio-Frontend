@@ -12,8 +12,8 @@ import RunnersView from '../views/RunnersView.vue'
 import RelatorioView from '../views/RelatorioView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import RolesView from '../views/RolesView.vue'
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from '../firebaseConfig.js'
+import api from '@/services/api'
+import { getCurrentUser } from '@/services/auth'
 
 
 const router = createRouter({
@@ -57,17 +57,19 @@ const router = createRouter({
      path: '/rota',
      name: 'rota',
      component: RotasView,
-     meta: { requiresAuth: true}
+     meta: { requiresAdmin: true}
     },
     {
       path: '/users',
       name: 'users',
       component: UsersView,
+      meta: { requiresAdmin: true}
     },
     {
       path: '/logs',
       name: 'logs',
       component: LogsView,
+      meta: { requiresAdmin: true}
     },
     {
       path: '/runners',
@@ -78,38 +80,57 @@ const router = createRouter({
       path: '/relatorios',
       name: 'relatorios',
       component: RelatorioView,
+      meta: { requiresAdmin: true}
     },
     {
       path: '/settings',
       name: 'settings',
       component: SettingsView,
+      meta: { requiresAdmin: true}
     },
     {
       path: '/roles',
       name: 'roles',
       component: RolesView,
+      meta: { requiresAdmin: true}
     }
   ],
 })
 
 
-router.beforeEach((to, from, next) => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
+router.beforeEach(async (to, from, next) => {
+  const user = await getCurrentUser();
+  let userData = null;
 
-    if (!user && to.name !== "login" && to.name !== "senha" && to.name !== "acesso") {
-      unsubscribe();
-      return next({ name: "login" });
+  if (user) {
+    try {
+      const token = await user.getIdToken(true);
+      const response = await api.get('/users/me', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      userData = response.data;
+    } catch (error) {
+      console.error('Erro ao buscar dados do usuário:', error);
     }
+  }
 
-    if (user && to.name === "login") {
-      unsubscribe();
-      return next({ name: "dashboard" });
-    }
+  if (!user && to.name !== "login" && to.name !== "senha" && to.name !== "acesso") {
+    return next({ name: "login" });
+  }
 
-    unsubscribe();
-    next();
-  });
+  if (user && to.name === "login") {
+    return next({ name: "dashboard" });
+  }
+
+  if(userData && to.meta.requiresAdmin && userData.profile !== 'admin'){
+    return next({ name: "dashboard" });
+  }
+
+  next();
 });
+
 
 
 
