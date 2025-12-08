@@ -137,7 +137,7 @@
               </label>
             </div>
           </div>
-          <button type="submit">Salvar</button>
+          <button type="submit" :disabled="isLoading">Salvar</button>
         </form>
       </div>
     </div>
@@ -315,6 +315,7 @@ export default {
       pollingTime: 5000, // 5 segundos
       pollingInterval: null,
       originalTitle: '',
+      isLoading: false,
     }
   },
   methods: {
@@ -423,6 +424,7 @@ export default {
       }
     },
     async salvarPreferencias() {
+      this.isLoading = true;
       const token = await getToken();
 
       const payload = {
@@ -440,19 +442,19 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        this.toa
       } catch (err) {
         if (err.response && err.response.status === 404) {
           await api.post('/user-preferences', payload, {
             headers: { Authorization: `Bearer ${token}` }
           });
-        } else {
-          console.error('Erro ao salvar preferências:', err);
           return;
         }
+        console.error('Erro ao salvar preferências:', err);
+        return;
+      } finally {
+        this.isLoading = false;
+        this.preferenciaModal = false;
       }
-
-      this.preferenciaModal = false;
     },
     async getNotifications() {
       try{

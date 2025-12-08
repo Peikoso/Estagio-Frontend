@@ -45,7 +45,7 @@
             <tr v-for="incidente in incidentes" :key="incidente.id">
               <td data-label="Detalhes" class="actions">
                 <button
-                  @click=" incidenteModal = true; detalhesIncidente(incidente)">
+                  @click=" incidenteModal = true; detalhesIncidente(incidente.id)">
                   Ver
                 </button>
               </td>
@@ -113,12 +113,12 @@
           <label for="user" style="margin: 10px">Escalonamento Manual</label>
           <select v-model="selectedUserId" id="user">
             <option disabled value="">Selecione um usuário</option>
-            <option v-for="user in users" :key="user.uid" :value="user.uid">
+            <option v-for="user in eligibleUsers" :key="user.id" :value="user.id">
               {{ user.email }}
             </option>
           </select>
-          <button class="button-status" style="margin: 10px" @click="escalonarIncidente" :disabled="user.profile !== 'admin'">
-            Salvar
+          <button class="button-status" style="margin: 10px" @click="escalonarIncidente()" :disabled="user.profile !== 'admin' || isLoading">
+            {{isLoading ? 'Carregando...' : 'Salvar'}}
           </button>
         </div>
         <hr />
@@ -216,7 +216,7 @@ export default {
       user: {},
       selectedUserId: '',
       novoComentario: '',
-      users: [],
+      eligibleUsers: [],
       roles: [],
       filtroRegra: '',
       filtroStatus: null,
@@ -287,15 +287,29 @@ export default {
         console.error('Erro ao buscar roles. Tente novamente.', error)
       }
     },
+    async getEligibleUsers(incidenteId) {
+      try{
+        const token = await getToken()
 
-    async detalhesIncidente(incidente) {
-      this.incidente = await this.getIncidenteById(incidente.id)
+        const response = await api.get(`/incidents/${incidenteId}/eligible-users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-      if (incidente.assignedUserId) {
-        this.incidente.assignedUserName = await this.getUserName(incidente.assignedUserId)
+        this.eligibleUsers = response.data
+      } catch (error) {
+        console.error('Erro ao buscar usuários elegíveis. Tente novamente.', error)
+      }
+    },
+    async detalhesIncidente(incidenteId) {
+      this.incidente = await this.getIncidenteById(incidenteId)
+
+      if (this.incidente.assignedUserId) {
+        this.incidente.assignedUserName = await this.getUserName(this.incidente.assignedUserId)
       }
 
-      this.incidentLogs = await this.getIncidentLogs(incidente.id)
+      this.incidentLogs = await this.getIncidentLogs(this.incidente.id)
+
+      await this.getEligibleUsers(this.incidente.id)
     },
 
     async getIncidenteById(id) {
@@ -370,7 +384,6 @@ export default {
         )
 
         this.toast('Regra reexecutada com sucesso.', false)
-        this.getIncidents()
       } catch (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           this.toast('Você não tem permissão para realizar esta ação.', true)
@@ -379,6 +392,7 @@ export default {
         this.toast('Erro ao reexecutar incidente. Tente novamente.', true)
 
       } finally {
+        await this.getIncidents()
         this.isLoading = false
       }
 
@@ -415,7 +429,7 @@ export default {
         )
 
         this.toast('Comentário adicionado com sucesso.', false)
-        this.getIncidents()
+
       } catch (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           this.toast('Você não tem permissão para realizar esta ação.', true)
@@ -424,12 +438,15 @@ export default {
         this.toast('Erro ao adicionar comentário. Tente novamente.', true)
       } finally {
         this.limparComentario()
-        this.detalhesIncidente(this.incidente)
+        await this.getIncidents()
+        await this.detalhesIncidente(this.incidente.id)
         this.isLoading = false
         this.comentarioModal = false
       }
     },
-    escalonarIncidente() {
+    async escalonarIncidente() {
+      this.isLoading = true
+
       if (!this.selectedUserId) {
         this.toast('Por favor, selecione um usuário para escalonamento.', true)
         return
@@ -438,6 +455,30 @@ export default {
       if (this.incidente.status === 'closed') {
         this.toast('Não é possível escalonar um incidente fechado.', true)
         return
+      }
+
+      try{
+        const token = await getToken()
+
+        await api.patch(
+          `/incidents/${this.incidente.id}/manual-escalation`,
+          {assignedUserId: this.selectedUserId},
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        )
+
+        this.toast('Incidente escalonado com sucesso.', false)
+      } catch (error) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
+        this.toast('Erro ao escalonar incidente. Tente novamente.', true)
+      } finally {
+        this.isLoading = false
+        await this.getIncidents()
+        await this.detalhesIncidente(this.incidente.id)
       }
 
       this.selectedUserId = ''
@@ -455,6 +496,7 @@ export default {
       this.incidente.closedAt = ''
       this.incidente.rule = ''
       this.novoComentario = ''
+      this.eligibleUsers = []
 
       this.incidentLogs = []
     },
@@ -517,7 +559,7 @@ export default {
         const response = await this.getIncidenteById(novoId)
 
         this.incidenteModal = true
-        this.detalhesIncidente(response)
+        this.detalhesIncidente(response.id)
       },
     },
     filtroRegra() {
