@@ -21,3 +21,14 @@ export function formatDate(isoString) {
     timeZone: 'America/Sao_Paulo'
   }).format(date);
 };
+
+export function formatToInput(formatedDate) {
+  if (!formatedDate) return;
+
+  const [datePart, timePart] = formatedDate.split(',').map(part => part.trim());
+
+  const [day, month, year] = datePart.split('/');
+  const [hour, minute] = timePart.split(':');
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}

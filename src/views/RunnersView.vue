@@ -2,12 +2,12 @@
     <div class="conteudo-container">
       <div class="titulo-descricao">
         <h3>Gestão de Runners</h3>
-        <p>Configure e gerencie os runners de monitoramento</p>
+        <p>Gerencie e monitore os runners do sistema</p>
       </div>
     </div>
     <div class="view-container">
-      <p>Runners</p>
       <div class="filtro-container">
+        <label class="filtro-label" for="filtro">Filtrar Runners</label>
         <input type="text" id="filtro" v-model="filtroRegra" placeholder="Digite o nome da regra" />
         <select id="filtro-status" v-model="filtroStatus">
           <option :value="null">Status</option>
@@ -62,8 +62,8 @@
     </div>
     <br>
     <div class="view-container">
-      <p>Fila Runners</p>
       <div class="filtro-container">
+        <label class="filtro-label" for="filtro">Filtrar Fila Runners</label>
         <input type="text" id="filtro" v-model="filtroRegraQueue" placeholder="Digite o nome da regra" />
         <select id="filtro-status" v-model="filtroStatusQueue">
           <option :value="null">Status</option>

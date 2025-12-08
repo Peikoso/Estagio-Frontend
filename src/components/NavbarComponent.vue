@@ -64,7 +64,7 @@
           class="link"
           active-class="ativo"
         >
-          Gestão de Rotas
+          Gestão de Escalas
         </router-link>
         <router-link
           v-if="userData.perfil === 'admin'"

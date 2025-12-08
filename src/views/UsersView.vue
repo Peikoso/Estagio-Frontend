@@ -164,7 +164,6 @@ export default {
       novoUsuarioModal: false,
       modoEdicao: false,
       deleteModal: false,
-      unsubscribe: null,
       avatarDefault,
       page: 1,
       per_page: 5,
@@ -313,11 +312,6 @@ export default {
   created() {
     this.getRoles();
     this.getAllUsers();
-  },
-  beforeUnmount() {
-    if(this.unsubscribe){
-      this.unsubscribe();
-    }
   },
   watch: {
     filtroNome() { this.applyFilters() },

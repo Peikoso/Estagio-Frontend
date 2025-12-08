@@ -231,6 +231,8 @@ export default {
       toastMessage: '',
       errorMessage: false,
       isLoading: false,
+      pollingTime: 5000, // 5 segundos
+      pollingInterval: null,
     }
   },
   methods: {
@@ -328,7 +330,7 @@ export default {
       try{
         const token = await getToken()
 
-        const response = await api.get(`/users/${userId}`, {
+        const response = await api.get(`/users/${userId}/name`, {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -489,11 +491,18 @@ export default {
         this.getIncidents()
       }, 500) // 500ms = meio segundo
     },
+    startPolling() {
+      this.pollingInterval = setInterval(() => {
+        this.getIncidents()
+      }, this.pollingTime)
+    },
   },
   created() {
     this.getCurrentUser()
     this.getIncidents()
     this.getAllRoles()
+    this.startPolling()
+
   },
   watch: {
     '$route.query.incidenteId': {

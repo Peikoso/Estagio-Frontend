@@ -2,28 +2,28 @@
   <div>
     <div class="conteudo-container">
       <div class="titulo-descricao">
-        <h3>Gestão de Rotas</h3>
-        <p>Gerenciamento e criação de Rotas</p>
+        <h3>Gestão de Escalas</h3>
+        <p>Gerenciamento e criação de Escalas</p>
       </div>
       <div>
-        <button @click="politicaRotaModal = true">Política de Rota</button>
-        <button @click="novaRotaModal = true">Nova Rota</button>
+        <button @click="politicaRotaModal = true">Política de Escala</button>
+        <button @click="novaRotaModal = true">Nova Escala</button>
       </div>
     </div>
     <div class="view-container">
-      <div>
-        <label class="filtro-label" for="filtro">Filtrar Nome</label>
-        <input
-          type="text"
-          id="filtro"
-          v-model="filtroNome"
-          placeholder="Digite o nome do usuário"
-        />
-        <label class="filtro-label" for="filtro">Filtrar Roles</label>
-        <input type="text" id="filtro" v-model="filtroRole" placeholder="Digite o nome da role" />
+      <div class="filtros-container">
+        <label class="filtro-label" for="filtro">Filtrar escalas</label>
+        <input type="text" id="filtro" v-model="filtroNome" placeholder="Digite o nome do usuário"/>
+        <select id="filtroRole" v-model="filtroRole">
+          <option :value="null" selected>Roles</option>
+          <option v-for="(role, index) in roles" :key="index" :value="role.id">
+            {{ role.name }}
+          </option>
+        </select>
       </div>
       <div class="table-responsive">
-        <table>
+        <h2 v-if="escalas.length == 0">Nenhuma escala atual registrada</h2>
+        <table v-if="escalas.length >= 1">
           <thead>
             <tr>
               <th>Nome</th>
@@ -36,22 +36,22 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="escala in escalas.slice(pagInicio, pagFim)" :key="escala.uid">
-              <td data-label="Nome">{{ escala.nome }}</td>
-              <td data-label="Email">{{ escala.email }}</td>
-              <td data-label="Hora Inicio">{{ formatDate(escala.start_dt) }}</td>
-              <td data-label="Hora Fim">{{ formatDate(escala.end_dt) }}</td>
+            <tr v-for="escala in escalas" :key="escala.uid">
+              <td data-label="Nome">{{ escala.user.name }}</td>
+              <td data-label="Email">{{ escala.user.email }}</td>
+              <td data-label="Hora Inicio">{{ formatDate(escala.startTime) }}</td>
+              <td data-label="Hora Fim">{{ formatDate(escala.endTime) }}</td>
               <td data-label="Roles">
                 <span
-                  v-for="(role, index) in escala.roles"
+                  v-for="(role, index) in escala.user.roles"
                   :key="index"
-                  :style="{ backgroundColor: getRoleColor(role) }"
+                  :style="{ backgroundColor: role.color }"
                   class="role-badge"
                 >
-                  {{ role }}
+                  {{ role.name }}
                 </span>
               </td>
-              <td data-label="Perfil">{{ escala.perfil }}</td>
+              <td data-label="Perfil">{{ escala.user.profile }}</td>
               <td class="actions" data-label="Ações">
                 <button @click="editarEscala(escala)">Editar</button>
                 <button @click="deleteEscala(escala)">Deletar</button>
@@ -67,24 +67,62 @@
     </div>
 
     <div class="modal" v-if="novaRotaModal">
-      <div class="modal-content">
+      <div class="modal-content" style="min-height: 800px; max-width: 100vh; overflow-y: auto;">
         <button class="close-btn" @click="novaRotaModal = false; modoEdicao = false; this.limparForm()">&times;</button>
         <form @submit.prevent="createEscala">
-          <label for="user">User</label>
-          <select v-model="selectedUserId" id="user">
-            <option disabled value="">Selecione um usuário</option>
-            <option v-for="user in users" :key="user.uid" :value="user.uid">
-              {{ user.email }}
-            </option>
-          </select>
+          <div>
+            <div>
+              <label for="user">Usuário</label>
+              <input type="text" id="user" v-model="filtroUserNome" placeholder="Filtrar usuários por nome" />
 
-          <label for="start_dt">Hora Inicio</label>
-          <input type="datetime-local" id="start_dt" v-model="escala.start_dt" />
+              <label for="userId">Usuário ID:</label>
+              <input type="text" id="userId" v-model="selectedUserId" :disabled="true" />
 
-          <label for="end_dt">Hora Fim</label>
-          <input type="datetime-local" id="end_dt" v-model="escala.end_dt" />
+              <label for="startTime">Hora Inicio</label>
+              <input type="datetime-local" id="startTime" v-model="escala.startTime" />
 
-          <button type="submit">Salvar</button>
+              <label for="endTime">Hora Fim</label>
+              <input type="datetime-local" id="endTime" v-model="escala.endTime" />
+
+              <button type="submit">Salvar</button>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Matricula</th>
+                    <th>Roles</th>
+                    <th>Perfil</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="user in users" :key="user.id" @click="selectUser(user)">
+                    <td data-label="">
+                      <div class="avatar-container" style="height: 50px; width: 50px; margin: 0;">
+                        <img :src="user.foto || avatarDefault" class="foto-perfil" />
+                      </div>
+                    </td>
+                    <td data-label="Nome">{{ user.name }}</td>
+                    <td data-label="Email">{{ user.email }}</td>
+                    <td data-label="Matricula">{{ user.matricula }}</td>
+                    <td data-label="Roles">
+                      <span
+                        v-for="(role, index) in user.roles" :key="index"
+                        :style="{ backgroundColor: role.color }"
+                        class="role-badge"
+                      >
+                        {{ role.name }}
+                      </span>
+                    </td>
+                    <td data-label="Perfil">{{ user.profile }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </form>
       </div>
     </div>
@@ -106,7 +144,7 @@
           placeholder="Tempo de timeout (minutos)"
         />
 
-        <button @click="salvarPoliticaRota(timeout)">Salvar</button>
+        <button @click="salvarPoliticaRota(timeout)" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar' }}</button>
       </div>
     </div>
 
@@ -124,105 +162,102 @@
 </template>
 
 <script>
-import { db } from '../firebaseConfig.js'
-import {
-  doc,
-  setDoc,
-  onSnapshot,
-  collection,
-  getDoc,
-  deleteDoc,
-  orderBy,
-  query,
-} from 'firebase/firestore'
+import api from '@/services/api';
+import { getToken } from '@/services/token';
+import { formatDate, formatToInput } from '@/services/format';
+import avatarDefault from '@/assets/icons/avatar-default.svg';
 
 export default {
   name: 'RotasView',
   data() {
     return {
-      user: {
-        uid: '',
-        nome: '',
-        email: '',
-        perfil: '',
-        roles: [],
-      },
       escala: {
-        uid: '',
-        userUid: '',
-        nome: '',
-        email: '',
-        perfil: '',
-        roles: '',
-        start_dt: '',
-        end_dt: '',
+        id: '',
+        startTime: '',
+        endTime: '',
+        userId: '',
+        user: {},
       },
       escalas: [],
-      selectedUserId: '',
+      roles: [],
       users: [],
+      selectedUserId: '',
       novaRotaModal: false,
       modoEdicao: false,
       deleteModal: false,
-      unsubscribeUsers: null,
-      unsubscribeEscalas: null,
       filtroNome: '',
-      filtroRole: '',
+      filtroRole: null,
+      filtroUserNome: '',
       politicaRotaModal: false,
-      timeout: 10,
-      pagInicio: 0,
-      pagFim: 5,
+      timeout: 0,
+      escalationPolicy: {},
+      page: 1,
+      perPage: 5,
+      isLoading: false,
+      avatarDefault,
     }
   },
   methods: {
-    getRoleColor(roleName) {
-      const role = this.roles.find((r) => r.nome === roleName)
-      return role ? role.cor : '#bdc3c7'
-    },
-    getAllUsers() {
-      this.unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
-        this.users = []
-        snapshot.forEach((doc) => {
-          this.users.push({ uid: doc.id, ...doc.data() })
-        })
-      })
-    },
-    getAllEscalas() {
-      this.unsubscribeEscalas = onSnapshot(
-        query(collection(db, 'escalas'), orderBy('start_dt')),
-        (snapshot) => {
-          this.escalas = []
-          snapshot.forEach((doc) => {
-            this.escalas.push({ uid: doc.id, ...doc.data() })
-          })
-        },
-      )
-    },
-    carregarLocalStorage() {
-      this.roles = JSON.parse(localStorage.getItem('roles')) || []
-    },
-    async createEscala() {
-      const userRef = doc(db, 'users', this.selectedUserId)
-      const userSnap = await getDoc(userRef)
+    formatDate,
+    formatToInput,
+    async getEscalas() {
+      const token = await getToken();
 
-      const user = userSnap.data()
+      const params = {
+        userName: this.filtroNome,
+        roleId: this.filtroRole,
+        page: this.page,
+        perPage: this.perPage,
+      };
 
-      if (!this.modoEdicao) {
-        this.escala.uid = crypto.randomUUID()
+      try{
+        const response = await api.get('/schedules', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params,
+        });
+
+        this.escalas = response.data;
+      } catch (error) {
+        console.error('Erro ao buscar escalas:', error);
+      }
+    },
+    async getRoles() {
+      const token = await getToken();
+
+      try{
+        const response = await api.get('/roles', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        this.roles = response.data;
+      } catch (error) {
+        console.error('Erro ao buscar roles:', error);
+      }
+    },
+    async getUsers() {
+      const token = await getToken();
+
+      const params = {
+        name: this.filtroUserNome || null,
       }
 
-      await setDoc(
-        doc(db, 'escalas', this.escala.uid),
-        {
-          userUid: this.selectedUserId,
-          nome: user.nome,
-          email: user.email,
-          roles: user.roles,
-          perfil: user.perfil,
-          start_dt: this.escala.start_dt,
-          end_dt: this.escala.end_dt,
-        },
-        { merge: true },
-      )
+      try{
+        const response = await api.get('/users/basic-info', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params,
+        });
+
+        this.users = response.data;
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+      }
+    },
+    selectUser(user) {
+      this.selectedUserId = user.id
+      this.filtroUserNome = user.name
+    },
+    async createEscala() {
+
 
       this.limparForm()
       this.novaRotaModal = false
@@ -230,74 +265,108 @@ export default {
     },
 
     editarEscala(escala) {
-      ;((this.escala.uid = escala.uid),
-        (this.escala.userUid = escala.userUid),
-        (this.escala.nome = escala.nome),
-        (this.escala.email = escala.email),
-        (this.escala.roles = escala.roles),
-        (this.escala.perfil = escala.perfil),
-        (this.escala.start_dt = escala.start_dt),
-        (this.escala.end_dt = escala.end_dt),
-        (this.selectedUserId = escala.userUid))
+      this.escala.id = escala.id
+      this.escala.startTime = formatToInput(formatDate(escala.startTime)),
+      this.escala.endTime = formatToInput(formatDate(escala.endTime)),
+      this.selectedUserId = escala.userId
+      this.filtroUserNome = escala.user.name
 
       this.novaRotaModal = true
       this.modoEdicao = true
     },
     limparForm() {
+      this.filtroUserNome = ''
       this.selectedUserId = ''
       this.escala.start_dt = ''
       this.escala.end_dt = ''
     },
     async deleteEscala(escala) {
-      this.escala.uid = escala.uid
+      this.escala.id = escala.id
       this.deleteModal = true
     },
     async confirmarDelete() {
-      await deleteDoc(doc(db, 'escalas', this.escala.uid))
       this.limparForm()
       this.deleteModal = false
     },
-    formatDate(date) {
-      const dateObj = new Date(date)
-      const formatedDate = dateObj.toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+    async getEscalationPolicy() {
+      const token = await getToken();
 
-      return formatedDate
+      try{
+        const response = await api.get('/escalation-policies', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        this.escalationPolicy = response.data;
+        this.timeout = this.escalationPolicy.timeoutMs / 1000 / 60;
+
+      } catch (error) {
+        console.error('Erro ao buscar política de escalonamento:', error);
+      }
     },
-    salvarPoliticaRota(timeout) {
+    async salvarPoliticaRota(timeout) {
       this.timeout = timeout
+
+      const token = await getToken();
+
+      try{
+        await api.get('/escalation-policies', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        await api.patch('/escalation-policies', { timeoutMs: this.timeout * 60 * 1000 }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+      } catch (error) {
+        if(error.response && error.response.status === 404){
+          try{
+            await api.post('/escalation-policies', { timeoutMs: this.timeout * 60 * 1000 }, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+          } catch (postError) {
+            console.error('Erro ao criar política de escalonamento:', postError);
+          }
+        } else {
+          console.error('Erro ao buscar política de escalonamento:', error);
+        }
+      }
+
+
       this.politicaRotaModal = false
     },
     pagAnterior() {
-      if (this.pagInicio > 0) {
-        this.pagInicio -= 5
-        this.pagFim -= 5
-      }
+      this.page--
+      this.getEscalas()
     },
     pagSeguinte() {
-      if (this.pagFim < this.escalas.length) {
-        this.pagInicio += 5
-        this.pagFim += 5
-      }
+      this.page++
+      this.getEscalas()
+    },
+    applyFilters() {
+      clearTimeout(this.timer)
+
+      this.timer = setTimeout(() => {
+        this.page = 1
+        this.getEscalas()
+      }, 500) // 500ms = meio segundo
     },
   },
   created() {
-    this.getAllUsers()
-    this.getAllEscalas()
-    this.carregarLocalStorage()
+    this.getEscalas()
+    this.getRoles()
+    this.getEscalationPolicy()
+    this.getUsers()
   },
-  beforeUnmount() {
-    if (this.unsubscribeUsers) {
-      this.unsubscribeUsers()
-    }
-    if (this.unsubscribeEscalas) {
-      this.unsubscribeEscalas()
-    }
+  watch: {
+    filtroNome() {
+      this.applyFilters()
+    },
+    filtroRole() {
+      this.applyFilters()
+    },
+    filtroUserNome() {
+      this.getUsers()
+    },
   },
 }
 </script>
