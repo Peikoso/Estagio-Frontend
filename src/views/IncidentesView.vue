@@ -369,7 +369,7 @@ export default {
           },
         )
 
-        this.toast('Incidente reexecutado com sucesso.', false)
+        this.toast('Regra reexecutada com sucesso.', false)
         this.getIncidents()
       } catch (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
@@ -503,6 +503,9 @@ export default {
     this.getAllRoles()
     this.startPolling()
 
+  },
+  beforeUnmount() {
+    clearInterval(this.pollingInterval)
   },
   watch: {
     '$route.query.incidenteId': {

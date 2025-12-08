@@ -41,6 +41,19 @@
         </div>
       </div>
     </div>
+
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div
+        style="background-color: #b30d14"
+        v-if="toastMessage && errorMessage"
+        class="mensagem-salvo"
+      >
+        {{ toastMessage }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -54,6 +67,9 @@ export default {
       password: '',
       isLoadingLogin: false,
       isLoadingVisitante: false,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
     }
   },
   methods: {
@@ -64,6 +80,11 @@ export default {
         await signInWithEmailAndPassword(auth, this.email, this.password)
         this.$router.push({ name: 'dashboard' })
       } catch (error) {
+        if (error.code === 'auth/invalid-credential') {
+            this.toast('Usuário ou senha inválidos.', true)
+            return;
+        }
+          this.toast('Erro ao fazer login, tente novamente mais tarde.')
           console.error('error with login', error.code, error.message)
       } finally {
         this.isLoadingLogin = false
@@ -76,10 +97,23 @@ export default {
         await signInAnonymously(auth)
         this.$router.push({ name: 'dashboard' })
       } catch (error) {
+        this.toast('Erro ao fazer login, tente novamente mais tarde.')
         console.error('error with login: ', error.code, error.message)
       } finally {
         this.isLoadingVisitante = false
       }
+    },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
     },
   },
 }

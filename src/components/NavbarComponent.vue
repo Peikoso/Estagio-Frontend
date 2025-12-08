@@ -314,6 +314,7 @@ export default {
       help,
       pollingTime: 5000, // 5 segundos
       pollingInterval: null,
+      originalTitle: '',
     }
   },
   methods: {
@@ -394,8 +395,8 @@ export default {
       signOut(auth)
         .then(() => {
           // Sign-out successful.
+          document.title = this.originalTitle;
           this.$router.push({ name: 'login' })
-          localStorage.removeItem('userData')
         })
         .catch((error) => {
           console.log(error)
@@ -521,10 +522,23 @@ export default {
     startPolling() {
       this.pollingInterval = setInterval(() => {
         this.getNotifications()
+        this.setTabNotifications()
       }, this.pollingTime)
     },
+    setTabNotifications() {
+      const notificationCount = this.notificacoes.length
+
+      if (notificationCount > 0) {
+        document.title = `(${notificationCount  }) ${this.originalTitle}`
+      }
+      if(notificationCount === 0) {
+        document.title = this.originalTitle
+      }
+
+    }
   },
   created() {
+    this.originalTitle = document.title;
     this.getUserInfo()
     this.getCanais()
     this.getNotifications()
