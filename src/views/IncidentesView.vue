@@ -440,8 +440,8 @@ export default {
         this.limparComentario()
         await this.getIncidents()
         await this.detalhesIncidente(this.incidente.id)
-        this.isLoading = false
         this.comentarioModal = false
+        this.isLoading = false
       }
     },
     async escalonarIncidente() {
@@ -476,9 +476,9 @@ export default {
         }
         this.toast('Erro ao escalonar incidente. Tente novamente.', true)
       } finally {
-        this.isLoading = false
         await this.getIncidents()
         await this.detalhesIncidente(this.incidente.id)
+        this.isLoading = false
       }
 
       this.selectedUserId = ''

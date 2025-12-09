@@ -419,10 +419,10 @@ export default {
         this.toast('Erro ao salvar a regra. Tente novamente mais tarde.', true)
       } finally {
         this.limparForm()
-        this.getRules()
+        await this.getRules()
         this.modoEdicao = false
-        this.isLoading = false;
         this.regraModal = false
+        this.isLoading = false;
       }
     },
     editarRegra(regra) {
@@ -457,7 +457,7 @@ export default {
       } catch(error){
         console.error('Erro ao silenciar/ativar o som da regra:', error);
       } finally {
-        this.getRules()
+        await this.getRules()
         this.isLoading = false;
       }
     },
@@ -472,8 +472,8 @@ export default {
       } catch(error){
         console.error('Erro ao executar/pausar a regra:', error);
       } finally {
+        await this.getRules()
         this.isLoading = false;
-        this.getRules()
       }
     },
     deleteRegra(regra) {
@@ -496,10 +496,10 @@ export default {
         this.toast('Erro ao deletar a regra. Tente novamente mais tarde.', true)
         return;
       } finally {
-        this.getRules()
-        this.isLoading = false;
+        await this.getRules()
         this.limparForm()
         this.deleteModal = false
+        this.isLoading = false;
       }
     },
     limparForm() {

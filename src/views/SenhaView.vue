@@ -16,7 +16,7 @@
             />
           </div>
           <div class="form-group">
-            <button type="submit" class="login-button">Enviar Link de Recuperação</button>
+            <button type="submit" class="login-button" :disabled="isLoading">{{ isLoading ? 'Enviando...' : 'Enviar Link de Recuperação'}}</button>
           </div>
         </form>
         <router-link
@@ -53,16 +53,20 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      isLoading: false,
     }
   },
   methods: {
     async recuperaSenha() {
+      this.isLoading = true
       const auth = getAuth()
       try {
         await sendPasswordResetEmail(auth, this.email)
         this.toast('Link de recuperação enviado!', false)
       } catch (error) {
         console.error('Erro ao enviar link de recuperação: ', error)
+      } finally {
+        this.isLoading = false
       }
     },
     toast(message, isError) {

@@ -216,8 +216,8 @@ export default {
       } catch(error){
         console.error('Erro ao executar/pausar a regra:', error);
       } finally {
+        await this.getRunners()
         this.isLoading = false;
-        this.getRunners()
       }
     },
     pagAnteriorRunners(){

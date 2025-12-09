@@ -12,6 +12,7 @@ import RunnersView from '../views/RunnersView.vue'
 import RelatorioView from '../views/RelatorioView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import RolesView from '../views/RolesView.vue'
+import ChannelsView from '@/views/ChannelsView.vue'
 import api from '@/services/api'
 import { getCurrentUser } from '@/services/auth'
 
@@ -80,6 +81,12 @@ const router = createRouter({
       path: '/relatorios',
       name: 'relatorios',
       component: RelatorioView,
+      meta: { requiresAdmin: true}
+    },
+    {
+      path: '/canais',
+      name: 'channels',
+      component: ChannelsView,
       meta: { requiresAdmin: true}
     },
     {

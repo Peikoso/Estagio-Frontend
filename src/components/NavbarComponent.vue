@@ -84,6 +84,14 @@
         </router-link>
         <router-link
           v-if="userData.perfil === 'admin'"
+          :to="{ name: 'channels' }"
+          class="link"
+          active-class="ativo"
+        >
+          Gestão de Canais
+        </router-link>
+        <router-link
+          v-if="userData.perfil === 'admin'"
           :to="{ name: 'settings' }"
           class="link settings-link"
           active-class="ativo"
@@ -99,7 +107,7 @@
         <ul v-if="dropdownOpen" class="dropdown">
           <li v-if="!(userData.perfil === 'viewer')">
             <a class="link" @click="perfilModal = true">Perfil</a>
-            <a class="link" @click="preferenciaModal = true">Preferências</a>
+            <a class="link" @click="preferenciaModal = true; getCanais()">Preferências</a>
           </li>
           <li><a class="link" @click.prevent="logout">Sair</a></li>
         </ul>
@@ -411,7 +419,7 @@ export default {
       try{
         const token = await getToken();
 
-        const response = await api.get('/channels', {
+        const response = await api.get('/config/active', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -478,7 +486,7 @@ export default {
         const token = await getToken();
         await api.patch(`/notifications/${notificationId}`, {
           status: 'READED',
-          readAt: new Date().toISOString(),
+          readAt: new Date().toLocaleString('sv-SE')
         }, {
           headers: { Authorization: `Bearer ${token}` }
         });

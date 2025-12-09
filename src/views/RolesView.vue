@@ -22,7 +22,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="role in roles.slice(pagInicio, pagFim)" :key="role.id">
+          <tr v-for="role in roles" :key="role.id">
             <td data-label="Nome">{{ role.name }}</td>
             <td data-label="Descrição">{{ role.description }}</td>
             <td data-label="Cor">
@@ -79,7 +79,7 @@
             required
           />
         </div>
-        <button type="submit">Salvar</button>
+        <button type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
       </form>
     </div>
   </div>
@@ -89,9 +89,22 @@
       <h3>Confirmar Exclusão</h3>
       <p>Tem certeza que deseja excluir esta role?</p>
       <div class="botoes-confirmacao">
-        <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
+        <button style="background-color: #b30d14" @click="confirmarDelete()" :disabled="isLoading">{{ isLoading ? 'Excluindo...' : 'Sim, Excluir'}}</button>
         <button @click="deleteModal = false; limparForm()">Cancelar</button>
       </div>
+    </div>
+  </div>
+
+  <div class="overlay-bloqueio" v-if="showToast">
+    <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+      {{ toastMessage }}
+    </div>
+    <div
+      style="background-color: #b30d14"
+      v-if="toastMessage && errorMessage"
+      class="mensagem-salvo"
+    >
+      {{ toastMessage }}
     </div>
   </div>
 </template>
@@ -110,60 +123,82 @@ export default {
         color: '#000000',
       },
       filtroNome: '',
-      filtroMatricula: '',
-      pagInicio: 0,
-      pagFim: 5,
+      page: 0,
+      perPage: 5,
       roles: [],
       roleModal: false,
       editRole: false,
       deleteModal: false,
+      isLoading: false,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
     }
   },
   methods: {
     pagAnterior() {
-      if (this.pagInicio > 0) {
-        this.pagInicio -= 5
-        this.pagFim -= 5
-      }
+      this.page--
+      this.getRoles()
     },
     pagSeguinte() {
-      if (this.pagFim < this.roles.length) {
-        this.pagInicio += 5
-        this.pagFim += 5
-      }
+      this.page++
+      this.getRoles()
     },
     async getRoles() {
-      const token = await getToken()
+      const params = {
+        name: this.filtroNome,
+        page: this.page,
+        perPage: this.perPage,
+      }
 
-      const response = await api.get('/roles', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      try{
+        const token = await getToken()
 
-      this.roles = response.data
+        const response = await api.get('/roles', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params,
+        })
+
+        this.roles = response.data
+      } catch (error) {
+        console.error('Erro ao buscar roles:', error)
+      }
     },
     async salvarRole() {
+      this.isLoading = true
+
       const data = {
         name: this.role.name,
         description: this.role.description,
         color: this.role.color,
       }
 
-      const token = await getToken()
+      try{
+        const token = await getToken()
 
-      if (this.editRole == false) {
-        await api.post('/roles', data, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      } else {
+        if (this.editRole == false) {
+          await api.post('/roles', data, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          return;
+        }
+
         await api.patch(`/roles/${this.role.id}`, data, {
           headers: { Authorization: `Bearer ${token}` },
         })
+
+      } catch (error) {
+        console.error('Erro ao salvar role:', error)
+        this.toast('Erro ao salvar role', true)
+      } finally {
+        await this.getRoles()
+        this.limparForm()
+        this.editRole = false
+        this.roleModal = false
+        this.isLoading = false
       }
 
-      await this.getRoles()
-      this.limparForm()
-      this.editRole = false
-      this.roleModal = false
+
     },
     editarRole(role) {
       this.roleModal = true
@@ -179,24 +214,60 @@ export default {
       this.deleteModal = true
     },
     async confirmarDelete() {
-      const token = await getToken()
+      this.isLoading = true
 
-      await api.delete(`/roles/${this.role.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      try{
+        const token = await getToken()
 
-      this.limparForm()
-      await this.getRoles()
-      this.deleteModal = false
+        await api.delete(`/roles/${this.role.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+      } catch (error) {
+        this.toast('Erro ao deletar role', true)
+        console.error('Erro ao deletar role:', error)
+      } finally {
+        this.limparForm()
+        await this.getRoles()
+        this.deleteModal = false
+        this.isLoading = false
+      }
     },
     limparForm() {
       this.role.name = ''
       this.role.description = ''
       this.role.color = '#000000'
+      this.role.id = ''
+      this.editRole = false
+    },
+    applyFilters() {
+      clearTimeout(this.timer)
+
+      this.timer = setTimeout(() => {
+        this.page = 1
+        this.getRoles()
+      }, 500) // 500ms = meio segundo
+    },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
     },
   },
-  async created() {
-    await this.getRoles()
+  created() {
+    this.getRoles()
+  },
+  watch: {
+    filtroNome() {
+      this.applyFilters()
+    }
   },
 }
 </script>

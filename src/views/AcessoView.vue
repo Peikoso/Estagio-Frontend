@@ -39,7 +39,7 @@
           </div>
 
           <div class="form-group">
-            <button class="login-button" type="submit">Salvar</button>
+            <button class="login-button" type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
           </div>
         </form>
         <router-link
@@ -82,12 +82,16 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      isLoading: false,
     }
   },
   methods: {
     async createUser() {
+      this.isLoading = true
+
       if (!this.user.matricula || !this.user.name || !this.user.email) {
         this.toast('Por favor, preencha todos os campos.', true)
+        this.isLoading = false
         return
       }
 
@@ -108,6 +112,8 @@ export default {
           true,
         )
         return
+      } finally {
+        this.isLoading = false
       }
 
       this.toast(

@@ -6,7 +6,7 @@
         <p>Gerenciamento e criação de Escalas</p>
       </div>
       <div>
-        <button @click="politicaRotaModal = true">Política de Escala</button>
+        <button @click="politicaRotaModal = true; getEscalationPolicy()">Política de Escala</button>
         <button @click="novaRotaModal = true">Nova Escala</button>
       </div>
     </div>
@@ -84,7 +84,7 @@
               <label for="endTime">Hora Fim</label>
               <input type="datetime-local" id="endTime" v-model="escala.endTime" />
 
-              <button type="submit">Salvar</button>
+              <button type="submit" :disabled="isLoading">{{isLoading ? 'Salvando...' : 'Salvar'}}</button>
             </div>
             <div class="table-responsive">
               <table>
@@ -153,9 +153,22 @@
         <h3>Confirmar Exclusão</h3>
         <p>Tem certeza que deseja excluir esta escala?</p>
         <div class="botoes-confirmacao">
-          <button style="background-color: #b30d14" @click="confirmarDelete()">Sim, Excluir</button>
+          <button style="background-color: #b30d14" @click="confirmarDelete()" :disabled="isLoading">{{isLoading ? 'Excluindo...' : 'Sim, Excluir'}}</button>
           <button @click="deleteModal = false; limparForm()">Cancelar</button>
         </div>
+      </div>
+    </div>
+
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div
+        style="background-color: #b30d14"
+        v-if="toastMessage && errorMessage"
+        class="mensagem-salvo"
+      >
+        {{ toastMessage }}
       </div>
     </div>
   </div>
@@ -195,6 +208,9 @@ export default {
       perPage: 5,
       isLoading: false,
       avatarDefault,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
     }
   },
   methods: {
@@ -257,11 +273,42 @@ export default {
       this.filtroUserNome = user.name
     },
     async createEscala() {
+      this.isLoading = true
 
+      try{
+        const token = await getToken();
 
-      this.limparForm()
-      this.novaRotaModal = false
-      this.modoEdicao = false
+        const payload = {
+          startTime: new Date(this.escala.startTime).toLocaleString('sv-SE'),
+          endTime: new Date(this.escala.endTime).toLocaleString('sv-SE'),
+          userId: this.selectedUserId,
+        };
+
+        console.log('Payload da escala:', payload);
+
+        if (this.modoEdicao == false) {
+          await api.post('/schedules', payload, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          return;
+        }
+
+        await api.patch(`/schedules/${this.escala.id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+      } catch (error) {
+        this.toast('Erro ao salvar escala', true);
+        console.error('Erro ao salvar escala:', error);
+      } finally {
+        this.limparForm()
+        await this.getEscalas();
+        this.novaRotaModal = false
+        this.modoEdicao = false
+        this.isLoading = false
+      }
+
     },
 
     editarEscala(escala) {
@@ -285,8 +332,22 @@ export default {
       this.deleteModal = true
     },
     async confirmarDelete() {
-      this.limparForm()
-      this.deleteModal = false
+      this.isLoading = true
+
+      try{
+        const token = await getToken();
+
+        await api.delete(`/schedules/${this.escala.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (error) {
+        console.error('Erro ao deletar escala:', error);
+      } finally {
+        await this.getEscalas();
+        this.limparForm()
+        this.deleteModal = false
+        this.isLoading = false
+      }
     },
     async getEscalationPolicy() {
       const token = await getToken();
@@ -304,6 +365,7 @@ export default {
       }
     },
     async salvarPoliticaRota(timeout) {
+      this.isLoading = true
       this.timeout = timeout
 
       const token = await getToken();
@@ -325,14 +387,19 @@ export default {
             });
           } catch (postError) {
             console.error('Erro ao criar política de escalonamento:', postError);
+            this.toast('Erro ao criar política de escalonamento', true);
+            return
           }
-        } else {
-          console.error('Erro ao buscar política de escalonamento:', error);
         }
+        console.error('Erro ao buscar política de escalonamento:', error);
+        this.toast('Erro ao atualizar política de escalonamento', true);
+        return
+      } finally {
+        this.politicaRotaModal = false
+        this.toast('Política de escalonamento salva com sucesso', false)
+        this.isLoading = false
       }
 
-
-      this.politicaRotaModal = false
     },
     pagAnterior() {
       this.page--
@@ -350,11 +417,22 @@ export default {
         this.getEscalas()
       }, 500) // 500ms = meio segundo
     },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
+    },
   },
   created() {
     this.getEscalas()
     this.getRoles()
-    this.getEscalationPolicy()
     this.getUsers()
   },
   watch: {

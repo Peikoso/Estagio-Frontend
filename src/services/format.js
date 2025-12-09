@@ -32,3 +32,4 @@ export function formatToInput(formatedDate) {
 
   return `${year}-${month}-${day}T${hour}:${minute}`;
 }
+
