@@ -2,11 +2,11 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;       /* Largura total da tela */
-  height: 100vh;      /* Altura total da tela */
-  background-color: rgba(0, 0, 0, 0.2); /* Fundo transparente ou levemente escuro */
-  z-index: 4999;      /* Fica logo abaixo da mensagem */
-  cursor: not-allowed; /* Opcional: mostra ícone de bloqueio no mouse */
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 4999;
+  cursor: not-allowed;
 }
 
 .mensagem-salvo {
@@ -14,17 +14,17 @@
   top: 20px;             /* distância do topo */
   left: 50%;
   transform: translateX(-50%); /* centraliza horizontalmente */
-  background-color: #269447;   /* cor de fundo */
-  color: white;                 /* texto branco */
-  margin: 20px 0;              /* espaçamento externo */
-  padding: 12px 20px;           /* espaçamento interno */
-  border-radius: 6px;           /* cantos arredondados */
-  font-weight: 500;             /* texto um pouco mais forte */
+  background-color: #269447;
+  color: white;
+  margin: 20px 0;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 500;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* sombra leve */
-  animation: fadeOut 3s forwards; /* some depois de 3s */
-  align-self: center;           /* centraliza no flex container */
-  z-index: 5000;              /* fica acima de outros elementos */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  animation: fadeOut 3s forwards;
+  align-self: center;
+  z-index: 5000;
 }
 
 /* animação opcional para sumir */

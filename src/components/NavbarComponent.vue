@@ -279,6 +279,7 @@ import avatarDefault from '@/assets/icons/avatar-default.svg'
 import help from '@/assets/icons/help.svg'
 import api from '@/services/api.js'
 import { formatDate } from '@/services/format.js'
+import { requestNotificationPermission } from '@/services/fcm.js'
 
 export default {
   name: 'NavbarComponent',
@@ -553,6 +554,7 @@ export default {
     this.getCanais()
     this.getNotifications()
     this.startPolling()
+    requestNotificationPermission()
   },
   beforeUnmount() {
     clearInterval(this.pollingInterval)
