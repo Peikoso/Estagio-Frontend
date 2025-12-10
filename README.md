@@ -1,44 +1,89 @@
-# prototipo
+# QQMonitor Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Interface web moderna desenvolvida em Vue 3 para monitoramento de incidentes, gestão de regras e notificações em tempo real.
 
-## Recommended IDE Setup
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 🚀 Tecnologias
 
-## Recommended Browser Setup
+- **Vue 3** - Framework JavaScript progressivo
+- **Vite** - Build tool rápido
+- **Vue Router** - Roteamento SPA
+- **Firebase** - Autenticação e Push Notifications
+- **Axios** - Cliente HTTP
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## 📋 Pré-requisitos
 
-## Customize configuration
+- **Node.js** 20+
+- **pnpm** (gerenciador de pacotes)
+- **Firebase Project** configurado
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## 🔧 Configuração Inicial
 
-## Project Setup
+### 1. Instalar Dependências
 
 ```sh
 pnpm install
 ```
 
-### Compile and Hot-Reload for Development
+### 2. Configurar Firebase
+
+Edite o arquivo `src/firebaseConfig.js` com suas credenciais Firebase.
+
+### 3. Configurar Service Worker (Push Notifications)
+
+Edite `public/firebase-messaging-sw.js` com suas credenciais Firebase.
+
+### 4. Configurar URL da API
+
+Em `src/services/api.js`, ajuste a baseURL para apontar para o backend.
+
+## ▶️ Executar Aplicação
+
+### Desenvolvimento (Hot-Reload)
 
 ```sh
 pnpm dev
 ```
 
-### Compile and Minify for Production
+Acesse: `http://localhost:5173`
+
+### Build para Produção
 
 ```sh
 pnpm build
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+### Preview da Build
+
+```sh
+pnpm preview
+```
+
+### Lint com ESLint
 
 ```sh
 pnpm lint
 ```
+
+## 📁 Principais Views
+
+```
+src/views/
+├── LoginView.vue           # Login com Firebase
+├── DashboardView.vue       # Dashboard principal
+├── IncidentesView.vue      # Gestão de incidentes
+├── RulesView.vue           # Gestão de regras SQL
+├── RunnersView.vue         # Gestão de runners
+├── UsersView.vue           # Gestão de usuários
+├── RolesView.vue           # Gestão de roles
+├── ChannelsView.vue        # Gestão de canais 
+├── RotasView.vue           # Escalas e políticas
+└── LogsView.vue            # Logs de auditoria
+```
+
+## 🔐 Autenticação
+
+A aplicação usa Firebase Authentication com token JWT armazenado localmente e middleware de autenticação em todas as rotas protegidas.
+
+
+**Desenvolvido para QQTech** | Versão 1.0.0 |
