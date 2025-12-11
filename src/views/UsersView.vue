@@ -70,10 +70,10 @@
               </td>
               <td data-label="Perfil">{{ user.profile }}</td>
               <td class="actions" data-label="Ações">
-                <button v-if="!user.pending" @click="editarUser(user)">Editar</button>
-                <button v-if="!user.pending" @click="deleteUser(user)">Deletar</button>
-                <button v-if="user.pending" @click="aprovarUser(user)">Aprovar</button>
-                <button v-if="user.pending" @click="deleteUser(user)">Rejeitar</button>
+                <button v-if="!user.pending" @click="editarUser(user)" :disabled="isLoading">{{ isLoading ? 'Carregando...' : 'Editar'}}</button>
+                <button v-if="!user.pending" @click="deleteUser(user)" :disabled="isLoading">{{ isLoading ? 'Carregando...' : 'Deletar'}}</button>
+                <button v-if="user.pending" @click="aprovarUser(user)" :disabled="isLoading">{{ isLoading ? 'Carregando...' : 'Aprovar'}}</button>
+                <button v-if="user.pending" @click="deleteUser(user)" :disabled="isLoading">{{ isLoading ? 'Carregando...' : 'Rejeitar'}}</button>
               </td>
             </tr>
           </tbody>
@@ -121,7 +121,7 @@
             <option value="viewer">Viewer</option>
           </select>
 
-          <button type="submit">Salvar</button>
+          <button type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
         </form>
       </div>
     </div>
@@ -131,7 +131,7 @@
         <h3>Confirmar Exclusão</h3>
         <p>Tem certeza que deseja excluir este usuário?</p>
         <div class="botoes-confirmacao">
-          <button style="background-color: #b30d14;" @click="confirmarDelete()">Sim, Excluir</button>
+          <button style="background-color: #b30d14;" @click="confirmarDelete()" :disabled="isLoading">{{ isLoading ? 'Excluindo...' : 'Sim, Excluir'}}</button>
           <button @click="deleteModal = false; limparForm()">Cancelar</button>
         </div>
       </div>
@@ -166,13 +166,14 @@ export default {
       deleteModal: false,
       avatarDefault,
       page: 1,
-      per_page: 5,
+      perPage: 5,
       filtroNome: '',
       filtroMatricula: '',
       filtroRole: null,
       filtroProfile: null,
       filtrarPendente: false,
       timer: null,
+      isLoading: false,
     }
   },
   methods: {
@@ -188,51 +189,63 @@ export default {
       this.user.roles.splice(index, 1);
     },
     async getAllUsers() {
-      const token = await getToken();
+      try{
+        const token = await getToken();
 
-      const params = {
-        name: this.filtroNome || null,
-        matricula: this.filtroMatricula || null,
-        role: this.filtroRole || null,
-        profile: this.filtroProfile || null,
-        pending: this.filtrarPendente ? true : null,
-        page: this.page,
-        per_page: this.per_page,
-      };
+        const params = {
+          name: this.filtroNome || null,
+          matricula: this.filtroMatricula || null,
+          role: this.filtroRole || null,
+          profile: this.filtroProfile || null,
+          pending: this.filtrarPendente ? true : null,
+          page: this.page,
+          perPage: this.perPage,
+        };
 
-      const response = await api.get('/users', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: params
-      });
+        const response = await api.get('/users', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: params
+        });
 
-      this.users = response.data;
+        this.users = response.data;
+
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+      }
     },
 
     async createUser() {
-      const token = await getToken();
+      this.isLoading = true;
+      try{
+        const token = await getToken();
 
-      const data = {
-        name: this.user.name,
-        matricula: this.user.matricula,
-        email: this.user.email,
-        profile: this.user.profile,
-        roles: this.user.roles.map(role => role.id),
-      };
+        const data = {
+          name: this.user.name,
+          matricula: this.user.matricula,
+          email: this.user.email,
+          profile: this.user.profile,
+          roles: this.user.roles.map(role => role.id),
+        };
 
-      if (this.modoEdicao) {
-        await api.patch(`/users/${this.user.id}`, data, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } else {
-        await api.post('/users', data, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        if (this.modoEdicao) {
+          await api.patch(`/users/${this.user.id}`, data, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } else {
+          await api.post('/users', data, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao criar/editar usuário:', error);
+      } finally {
+        this.limparForm()
+        await this.getAllUsers()
+        this.novoUsuarioModal = false
+        this.modoEdicao = false
+        this.isLoading = false;
       }
 
-      this.limparForm()
-      this.getAllUsers()
-      this.novoUsuarioModal = false
-      this.modoEdicao = false
     },
     editarUser(user) {
       this.user.id = user.id
@@ -259,27 +272,42 @@ export default {
       this.deleteModal = true
     },
     async confirmarDelete(){
-      const token = await getToken();
+      this.isLoading = true;
+      try{
+        const token = await getToken();
 
-      await api.delete(`/users/${this.user.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        await api.delete(`/users/${this.user.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (error) {
+        console.error('Erro ao deletar usuário:', error);
+      } finally {
+        this.isLoading = false;
+        await this.getAllUsers()
+        this.limparForm()
+        this.deleteModal = false
+      }
 
-      this.getAllUsers()
-      this.limparForm()
-      this.deleteModal = false
     },
     async aprovarUser(user) {
-      const token = await getToken();
+      this.isLoading = true;
 
-      await api.post(`/users/${user.id}/approve`,
-        { fake: true },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+      try{
+        const token = await getToken();
+
+        await api.post(`/users/${user.id}/approve`,
+          { fake: true },
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
       );
+      } catch (error) {
+        console.error('Erro ao aprovar usuário:', error);
+      } finally {
+        await this.getAllUsers()
+        this.isLoading = false;
+      }
 
-      this.getAllUsers()
     },
     pagAnterior(){
       if(this.page > 1){
@@ -292,13 +320,17 @@ export default {
       this.getAllUsers();
     },
     async getRoles() {
-      const token = await getToken();
+      try{
+        const token = await getToken();
 
-      const response = await api.get('/roles', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+        const response = await api.get('/roles', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-      this.roles = response.data;
+        this.roles = response.data;
+      } catch (error) {
+        console.error('Erro ao buscar roles:', error);
+      }
     },
     applyFilters() {
       clearTimeout(this.timer);
