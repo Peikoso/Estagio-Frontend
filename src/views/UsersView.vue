@@ -87,16 +87,16 @@
 
     <div class="modal" v-if="novoUsuarioModal">
       <div class="modal-content">
-        <button class="close-btn" @click="novoUsuarioModal = false; modoEdicao = false; this.limparForm(); this.getAllUsers()">&times;</button>
+        <button class="close-btn" @click="novoUsuarioModal = false; modoEdicao = false; limparForm(); getAllUsers()">&times;</button>
         <form @submit.prevent="createUser">
           <label for="matricula">Matricula</label>
-          <input type="text" id="matricula" placeholder="Ex.: 203102" v-model="user.matricula">
+          <input type="text" id="matricula" placeholder="Ex.: 203102" v-model="user.matricula" required maxlength="30">
 
           <label for="name">Nome</label>
-          <input type="text" id="name" placeholder="Ex.: João Martins" v-model="user.name">
+          <input type="text" id="name" placeholder="Ex.: João Martins" v-model="user.name" required maxlength="100">
 
           <label for="email">Email</label>
-          <input type="email" id="email" placeholder="Ex.: user@example.com" v-model="user.email">
+          <input type="email" id="email" placeholder="Ex.: user@example.com" v-model="user.email" required maxlength="120">
 
           <label for="roles">Roles</label>
           <div>
@@ -136,6 +136,20 @@
         </div>
       </div>
     </div>
+
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div
+        style="background-color: #b30d14"
+        v-if="toastMessage && errorMessage"
+        class="mensagem-salvo"
+      >
+        {{ toastMessage }}
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -174,6 +188,9 @@ export default {
       filtrarPendente: false,
       timer: null,
       isLoading: false,
+      toastMessage: '',
+      showToast: false,
+      errorMessage: false,
     }
   },
   methods: {
@@ -216,7 +233,16 @@ export default {
 
     async createUser() {
       this.isLoading = true;
+      let hasError = false;
+      const NAME_REGEX = /^[A-Za-zÀ-ÿ]+(?:\s[A-Za-zÀ-ÿ]+)*$/;
       try{
+        if(!NAME_REGEX.test(this.user.name)){
+          this.toast('O nome contém caracteres inválidos.', true);
+          this.isLoading = false;
+          hasError = true;
+          return;
+        }
+
         const token = await getToken();
 
         const data = {
@@ -237,12 +263,32 @@ export default {
           });
         }
       } catch (error) {
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para criar/editar este usuário.', true);
+          hasError = true;
+          return;
+        }
+        if(error.response && error.response.status === 409 && error.response.data.error.includes('matricula')){
+          this.toast('A matrícula já está em uso.', true);
+          hasError = true;
+          return;
+        }
+        if(error.response && error.response.status === 409 && error.response.data.error.includes('email')){
+          this.toast('O email já está em uso.', true);
+          hasError = true;
+          return;
+        }
+
+        this.toast('Erro ao criar/editar usuário.', true);
         console.error('Erro ao criar/editar usuário:', error);
+        hasError = true;
       } finally {
-        this.limparForm()
+        if (!hasError) {
+          this.limparForm();
+          this.novoUsuarioModal = false;
+          this.modoEdicao = false;
+        }
         await this.getAllUsers()
-        this.novoUsuarioModal = false
-        this.modoEdicao = false
         this.isLoading = false;
       }
 
@@ -266,6 +312,7 @@ export default {
       this.user.password = ''
       this.user.roles = []
       this.user.profile = 'viewer'
+      this.selectedRole = ''
     },
     deleteUser(user) {
       this.user.id = user.id
@@ -280,6 +327,11 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (error) {
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para deletar este usuário.', true);
+          return;
+        }
+        this.toast('Erro ao deletar usuário.', true);
         console.error('Erro ao deletar usuário:', error);
       } finally {
         this.isLoading = false;
@@ -302,6 +354,11 @@ export default {
           }
       );
       } catch (error) {
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para aprovar este usuário.', true);
+          return;
+        }
+        this.toast('Erro ao aprovar usuário.', true);
         console.error('Erro ao aprovar usuário:', error);
       } finally {
         await this.getAllUsers()
@@ -339,6 +396,18 @@ export default {
         this.page = 1;
         this.getAllUsers();
       }, 500); // 500ms = meio segundo
+    },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
     },
   },
   created() {
