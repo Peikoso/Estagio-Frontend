@@ -415,6 +415,10 @@ export default {
         this.toast('Regra criada com sucesso!', false)
 
       } catch (error) {
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
         console.error('Erro ao salvar a regra:', error)
         this.toast('Erro ao salvar a regra. Tente novamente mais tarde.', true)
       } finally {
@@ -455,6 +459,10 @@ export default {
         });
 
       } catch(error){
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
         console.error('Erro ao silenciar/ativar o som da regra:', error);
       } finally {
         await this.getRules()
@@ -470,6 +478,10 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch(error){
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
         console.error('Erro ao executar/pausar a regra:', error);
       } finally {
         await this.getRules()
@@ -492,6 +504,10 @@ export default {
 
         this.toast('Regra deletada com sucesso!', false)
       } catch(error){
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
         console.error('Erro ao deletar a regra:', error);
         this.toast('Erro ao deletar a regra. Tente novamente mais tarde.', true)
         return;
@@ -578,11 +594,25 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
+    applyFilters() {
+      clearTimeout(this.timer);
+
+      this.timer = setTimeout(() => {
+        this.page = 1;
+        this.getRules();
+      }, 500); // 500ms = meio segundo
+    },
   },
   created() {
     this.getCurrentUser();
     this.getRules();
     this.getRoles();
+  },
+  watch: {
+    filtroRegra() { this.applyFilters() },
+    filtroDatabase() { this.applyFilters() },
+    filtroPrioridade() { this.applyFilters() },
+    filtroRole() { this.applyFilters() },
   },
 }
 </script>

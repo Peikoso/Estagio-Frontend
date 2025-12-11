@@ -44,22 +44,6 @@
         </div>
         <router-link
           v-if="userData.perfil === 'admin'"
-          :to="{ name: 'logs' }"
-          class="link"
-          active-class="ativo"
-        >
-          Logs de Execução
-        </router-link>
-        <router-link
-          v-if="userData.perfil === 'admin'"
-          :to="{ name: 'relatorios' }"
-          class="link"
-          active-class="ativo"
-        >
-          Relatórios e Métricas
-        </router-link>
-        <router-link
-          v-if="userData.perfil === 'admin'"
           :to="{ name: 'rota' }"
           class="link"
           active-class="ativo"
@@ -76,6 +60,22 @@
         </router-link>
         <router-link
           v-if="userData.perfil === 'admin'"
+          :to="{ name: 'logs' }"
+          class="link"
+          active-class="ativo"
+        >
+          Logs de Execução
+        </router-link>
+        <router-link
+          v-if="userData.perfil === 'admin'"
+          :to="{ name: 'relatorios' }"
+          class="link"
+          active-class="ativo"
+        >
+          Relatórios e Métricas
+        </router-link>
+        <router-link
+          v-if="isSuperAdmin"
           :to="{ name: 'roles' }"
           class="link"
           active-class="ativo"
@@ -83,20 +83,12 @@
           Gestão de Roles
         </router-link>
         <router-link
-          v-if="userData.perfil === 'admin'"
+          v-if="isSuperAdmin"
           :to="{ name: 'channels' }"
           class="link"
           active-class="ativo"
         >
           Gestão de Canais
-        </router-link>
-        <router-link
-          v-if="userData.perfil === 'admin'"
-          :to="{ name: 'settings' }"
-          class="link settings-link"
-          active-class="ativo"
-        >
-          Configurações
         </router-link>
       </nav>
 
@@ -280,6 +272,7 @@ import help from '@/assets/icons/help.svg'
 import api from '@/services/api.js'
 import { formatDate } from '@/services/format.js'
 import { requestNotificationPermission } from '@/services/fcm.js'
+import { VerifySuperAdmin } from '@/services/auth.js'
 
 export default {
   name: 'NavbarComponent',
@@ -325,10 +318,12 @@ export default {
       pollingInterval: null,
       originalTitle: '',
       isLoading: false,
+      isSuperAdmin: false,
     }
   },
   methods: {
     formatDate,
+    VerifySuperAdmin,
     async getUserInfo() {
       if (auth.currentUser && !auth.currentUser.isAnonymous) {
         const token = await getToken();
@@ -348,6 +343,8 @@ export default {
         this.userData.perfil = response.data.profile
         this.userData.roles = response.data.roles
         this.userData.foto = response.data.picture || this.avatarDefault
+
+        this.isSuperAdmin = VerifySuperAdmin(response.data);
 
         try{
           const preferenciasResponse = await api.get('/user-preferences', {
@@ -370,20 +367,7 @@ export default {
           this.preferencia.endTime = '00:00:00'
           this.preferencia.canais = []
         }
-
-
-
-      } else if (auth.currentUser.isAnonymous === true) {
-        this.userData.id = 'visitante'
-        this.userData.matricula = 'visitante'
-        this.userData.name = 'visitante'
-        this.userData.email = 'visitante'
-        this.userData.pending = 'visitante'
-        this.userData.profile = 'viewer'
-        this.userData.roles = 'visitante'
-        this.userData.foto = this.avatarDefault
       }
-
     },
     clearUserInfo() {
       this.userData = {

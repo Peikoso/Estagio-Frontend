@@ -107,7 +107,7 @@
           </thead>
           <tbody>
             <tr v-for="incidente in incidentes" :key="incidente.id">
-              <td data-label="Regra">{{ incidente.rule.name }}</td>
+              <td data-label="Regra">{{ incidente.rule?.name ?? 'N/A' }}</td>
               <td data-label="Prioridade">{{ formatPriority(incidente.priority) }}</td>
               <td data-label="Aberta em">{{ formatDate(incidente.createdAt) }}</td>
               <td data-label="Status" class="actions">
@@ -220,6 +220,8 @@ export default {
         })
 
         this.incidentes = response.data
+
+        console.log("Incidentes obtidos:", this.incidentes);
       } catch(error){
         console.error("Erro ao obter incidentes:", error);
       }

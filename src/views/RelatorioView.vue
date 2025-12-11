@@ -89,37 +89,6 @@
     </div>
 
     <div style="justify-content: center; text-align: center; margin-top: 20px; margin-bottom: 10px;">
-      <h3>Resiliência do Sistema</h3>
-    </div>
-    <div class="small-views">
-      <div class="small-view-container">
-        <h3>Disponibilidade</h3>
-        <br><br>
-        <h3>{{ Disponibilidade }}%</h3>
-        <br><br>
-        <p>Tempo de atividade do sistema no período</p>
-      </div>
-      <div class="small-view-container">
-        <div>
-          <h3>Tempo de Recuperação</h3>
-          <br><br>
-          <h3>{{ tempo_recuperacao }} minutos</h3>
-          <br><br>
-          <p>Tempo médio para restaurar o serviço após uma falha</p>
-        </div>
-      </div>
-      <div class="small-view-container">
-        <div>
-          <h3>Tempo Médio Entre Falhas</h3>
-          <br><br>
-          <h3>{{ tempo_medio_entre_falhas }} horas</h3>
-          <br><br>
-          <p>Tempo médio entre falhas do sistema</p>
-        </div>
-      </div>
-    </div>
-
-    <div style="justify-content: center; text-align: center; margin-top: 20px; margin-bottom: 10px;">
       <h3>Métricas Complementares</h3>
     </div>
     <div class="small-views">
@@ -175,9 +144,6 @@ export default {
       taxa_erro_regra: 5,
       tempo_medio_entre_incidentes: 60,
       total_execucoes_regras: 250,
-      Disponibilidade: 99.9,
-      tempo_recuperacao: 30,
-      tempo_medio_entre_falhas: 20,
       incidentes_escalonados: 15,
       notificacoes_enviadas: 420,
       regras_ativas: 25,
@@ -195,9 +161,6 @@ methods: {
         ['Taxa de Erro de Regra (%)', this.taxa_erro_regra],
         ['Tempo Médio Entre Incidentes (min)', this.tempo_medio_entre_incidentes],
         ['Total de Execuções de Regras', this.total_execucoes_regras],
-        ['Disponibilidade (%)', this.Disponibilidade],
-        ['Tempo de Recuperação (min)', this.tempo_recuperacao],
-        ['Tempo Médio Entre Falhas (h)', this.tempo_medio_entre_falhas],
         ['Incidentes Escalonados', this.incidentes_escalonados],
         ['Notificações Enviadas', this.notificacoes_enviadas],
         ['Regras Ativas', this.regras_ativas],

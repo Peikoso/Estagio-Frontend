@@ -55,10 +55,10 @@
       <form @submit.prevent="salvarRole">
         <h2>Editar Role</h2>
         <label for="name">Nome:</label>
-        <input type="text" id="name" v-model="role.name" required />
+        <input type="text" id="name" v-model="role.name" required maxlength="20"/>
 
         <label for="description">Descrição:</label>
-        <input type="text" id="description" v-model="role.description" required />
+        <input type="text" id="description" v-model="role.description" required maxlength="150"/>
 
         <div
           style="
@@ -78,6 +78,14 @@
             v-model="role.color"
             required
           />
+        </div>
+
+        <div class="switch-container">
+          <span class="switch-label">Super ADM</span>
+          <label class="switch">
+            <input type="checkbox" v-model="role.isSuperadmin" />
+            <span class="slider"></span>
+          </label>
         </div>
         <button type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
       </form>
@@ -121,9 +129,10 @@ export default {
         name: '',
         description: '',
         color: '#000000',
+        isSuperadmin: false,
       },
       filtroNome: '',
-      page: 0,
+      page: 1,
       perPage: 5,
       roles: [],
       roleModal: false,
@@ -171,6 +180,7 @@ export default {
         name: this.role.name,
         description: this.role.description,
         color: this.role.color,
+        isSuperadmin: this.role.isSuperadmin,
       }
 
       try{
@@ -188,6 +198,10 @@ export default {
         })
 
       } catch (error) {
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast(`Erro: Permissão negada`, true)
+          return;
+        }
         console.error('Erro ao salvar role:', error)
         this.toast('Erro ao salvar role', true)
       } finally {
@@ -208,6 +222,7 @@ export default {
       this.role.name = role.name
       this.role.description = role.description
       this.role.color = role.color
+      this.role.isSuperadmin = role.isSuperadmin
     },
     excluirRole(role) {
       this.role.id = role.id
@@ -238,6 +253,7 @@ export default {
       this.role.description = ''
       this.role.color = '#000000'
       this.role.id = ''
+      this.role.isSuperadmin = false
       this.editRole = false
     },
     applyFilters() {

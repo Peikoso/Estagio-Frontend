@@ -10,3 +10,15 @@ export function getCurrentUser() {
   });
 }
 
+
+export function VerifySuperAdmin(user) {
+  if (!user) return false;
+
+  const HasAdminRole = user.roles.some(role => role.isSuperadmin === true);
+
+  if(user.profile === 'admin' && HasAdminRole) {
+    return true;
+  }
+
+  return false;
+}

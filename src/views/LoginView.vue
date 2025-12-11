@@ -36,9 +36,6 @@
           <router-link :to="{ name: 'senha' }" class="link" style="width: 48%; text-align: center; background-color:  #24723b;">Esqueci minha senha</router-link>
           <router-link :to="{ name: 'acesso' }" class="link" style="width: 48%; text-align: center; background-color:  #24723b;">Solicitar Acesso</router-link>
         </div>
-        <div class="form-group">
-          <button :disabled="isLoadingLogin || isLoadingVisitante" @click="anonymousLogin" class="anonymous-button">{{ isLoadingVisitante ? 'Carregando...' : 'Visitante' }}</button>
-        </div>
       </div>
     </div>
 
@@ -58,7 +55,7 @@
 </template>
 
 <script>
-import { getAuth, signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth'
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 export default {
   name: 'LoginView',
   data() {
@@ -88,19 +85,6 @@ export default {
           console.error('error with login', error.code, error.message)
       } finally {
         this.isLoadingLogin = false
-      }
-    },
-    async anonymousLogin() {
-      this.isLoadingVisitante = true
-      const auth = getAuth()
-      try {
-        await signInAnonymously(auth)
-        this.$router.push({ name: 'dashboard' })
-      } catch (error) {
-        this.toast('Erro ao fazer login, tente novamente mais tarde.')
-        console.error('error with login: ', error.code, error.message)
-      } finally {
-        this.isLoadingVisitante = false
       }
     },
     toast(message, isError) {

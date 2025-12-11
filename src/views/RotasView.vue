@@ -284,8 +284,6 @@ export default {
           userId: this.selectedUserId,
         };
 
-        console.log('Payload da escala:', payload);
-
         if (this.modoEdicao == false) {
           await api.post('/schedules', payload, {
             headers: { Authorization: `Bearer ${token}` },
@@ -299,6 +297,14 @@ export default {
         });
 
       } catch (error) {
+        if(error.response && (error.response.status === 403 || error.response.status === 401)){
+          this.toast(`Erro: Permissão negada`, true);
+          return;
+        }
+        if(error.response && error.response.status === 422 && error.response.data.error.includes('time')){
+          this.toast(`Erro: Horário inválido`, true);
+          return;
+        }
         this.toast('Erro ao salvar escala', true);
         console.error('Erro ao salvar escala:', error);
       } finally {
@@ -324,8 +330,8 @@ export default {
     limparForm() {
       this.filtroUserNome = ''
       this.selectedUserId = ''
-      this.escala.start_dt = ''
-      this.escala.end_dt = ''
+      this.escala.startTime = ''
+      this.escala.endTime = ''
     },
     async deleteEscala(escala) {
       this.escala.id = escala.id
@@ -341,6 +347,10 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (error) {
+        if(error.response && (error.response.status === 403 || error.response.status === 401)){
+          this.toast(`Erro: Permissão negada`, true);
+          return;
+        }
         console.error('Erro ao deletar escala:', error);
       } finally {
         await this.getEscalas();
@@ -379,24 +389,33 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        this.toast('Política de escalonamento salva com sucesso', false)
+
+        return;
       } catch (error) {
         if(error.response && error.response.status === 404){
           try{
             await api.post('/escalation-policies', { timeoutMs: this.timeout * 60 * 1000 }, {
               headers: { Authorization: `Bearer ${token}` },
             });
+
+            this.toast('Política de escalonamento criada com sucesso', false)
+            return;
           } catch (postError) {
             console.error('Erro ao criar política de escalonamento:', postError);
             this.toast('Erro ao criar política de escalonamento', true);
             return
           }
         }
+        if(error.response && (error.response.status === 403 || error.response.status === 401)){
+          this.toast(`Erro: Permissão negada`, true);
+          return;
+        }
         console.error('Erro ao buscar política de escalonamento:', error);
         this.toast('Erro ao atualizar política de escalonamento', true);
         return
       } finally {
         this.politicaRotaModal = false
-        this.toast('Política de escalonamento salva com sucesso', false)
         this.isLoading = false
       }
 

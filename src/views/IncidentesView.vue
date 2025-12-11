@@ -49,7 +49,7 @@
                   Ver
                 </button>
               </td>
-              <td data-label="Regra">{{ incidente.rule.name }}</td>
+              <td data-label="Regra">{{ incidente.rule?.name ?? 'N/A' }}</td>
               <td data-label="Prioridade">{{ formatPriority(incidente.priority) }}</td>
               <td data-label="Aberta em">{{ formatDate(incidente.createdAt) }}</td>
               <td data-label="Status" class="actions">
@@ -84,7 +84,7 @@
           <h4>Detalhes do Incidente</h4>
           <p><strong>ID do Incidente:</strong> {{ incidente.id }}</p>
           <p><strong>Criado em:</strong> {{ formatDate(incidente.createdAt) }}</p>
-          <p><strong>Regra:</strong> {{ incidente.rule.name }}</p>
+          <p><strong>Regra:</strong> {{ incidente.rule?.name ?? 'N/A' }}</p>
           <p><strong>Prioridade:</strong> {{ formatPriority(incidente.priority) }}</p>
           <p><strong>Status:</strong> {{ incidente.status }}</p>
           <p><strong>Ack em:</strong> {{ formatDate(incidente.ackAt) }}</p>

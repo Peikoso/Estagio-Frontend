@@ -112,6 +112,19 @@
       </div>
     </div>
 
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div
+        style="background-color: #b30d14"
+        v-if="toastMessage && errorMessage"
+        class="mensagem-salvo"
+      >
+        {{ toastMessage }}
+      </div>
+    </div>
+
 </template>
 
 <script>
@@ -139,6 +152,9 @@ export default {
       isLoading: false,
       pollingTime: 5000, // 5 segundos
       pollingInterval: null,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
     };
   },
   methods: {
@@ -214,6 +230,10 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch(error){
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
         console.error('Erro ao executar/pausar a regra:', error);
       } finally {
         await this.getRunners()
@@ -257,8 +277,19 @@ export default {
         this.getRunners();
         this.getRunnerQueue();
       }, this.pollingTime);
-    }
-
+    },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
+    },
   },
   created() {
     this.getCurrentUser();

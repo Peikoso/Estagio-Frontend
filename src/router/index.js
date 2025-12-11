@@ -10,11 +10,10 @@ import SenhaView from '../views/SenhaView.vue'
 import AcessoView from '../views/AcessoView.vue'
 import RunnersView from '../views/RunnersView.vue'
 import RelatorioView from '../views/RelatorioView.vue'
-import SettingsView from '../views/SettingsView.vue'
 import RolesView from '../views/RolesView.vue'
 import ChannelsView from '@/views/ChannelsView.vue'
 import api from '@/services/api'
-import { getCurrentUser } from '@/services/auth'
+import { getCurrentUser, VerifySuperAdmin } from '@/services/auth'
 
 
 const router = createRouter({
@@ -87,19 +86,13 @@ const router = createRouter({
       path: '/canais',
       name: 'channels',
       component: ChannelsView,
-      meta: { requiresAdmin: true}
-    },
-    {
-      path: '/settings',
-      name: 'settings',
-      component: SettingsView,
-      meta: { requiresAdmin: true}
+      meta: { requiresAdmin: true, requiresSuperAdmin: true }
     },
     {
       path: '/roles',
       name: 'roles',
       component: RolesView,
-      meta: { requiresAdmin: true}
+      meta: { requiresAdmin: true, requiresSuperAdmin: true }
     }
   ],
 })
@@ -108,6 +101,7 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const user = await getCurrentUser();
   let userData = null;
+  let isSuperAdmin = false;
 
   if (user) {
     try {
@@ -118,6 +112,9 @@ router.beforeEach(async (to, from, next) => {
         }
       });
       userData = response.data;
+
+      isSuperAdmin = VerifySuperAdmin(userData);
+
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error);
     }
@@ -132,6 +129,10 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if(userData && to.meta.requiresAdmin && userData.profile !== 'admin'){
+    return next({ name: "dashboard" });
+  }
+
+  if(userData && to.meta.requiresSuperAdmin && !isSuperAdmin){
     return next({ name: "dashboard" });
   }
 
