@@ -183,6 +183,7 @@ export default {
       isLoading: false,
       pollingTime: 5000, // 5 segundos
       pollingInterval: null,
+      timer: null,
     }
   },
 

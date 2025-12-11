@@ -142,6 +142,7 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      timer: null,
     }
   },
   methods: {

@@ -64,7 +64,7 @@
           class="link"
           active-class="ativo"
         >
-          Logs de Execução
+          Logs e Auditoria
         </router-link>
         <router-link
           v-if="userData.perfil === 'admin'"

@@ -233,6 +233,7 @@ export default {
       isLoading: false,
       pollingTime: 5000, // 5 segundos
       pollingInterval: null,
+      timer: null,
     }
   },
   methods: {
@@ -393,6 +394,7 @@ export default {
 
       } finally {
         await this.getIncidents()
+        await this.detalhesIncidente(this.incidente.id)
         this.isLoading = false
       }
 

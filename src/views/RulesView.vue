@@ -292,6 +292,7 @@ export default {
       toastMessage: '',
       errorMessage: false,
       isLoading: false,
+      timer: null,
     }
   },
   methods: {
