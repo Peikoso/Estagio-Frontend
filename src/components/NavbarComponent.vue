@@ -137,7 +137,7 @@
               </label>
             </div>
           </div>
-          <button type="submit" :disabled="isLoading">Salvar</button>
+          <button type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
         </form>
       </div>
     </div>
@@ -193,7 +193,8 @@
           <label for="telefone">Telefone</label>
           <input type="number" id="telefone" v-model="userData.telefone"/>
 
-          <button type="submit">Salvar</button>
+          <button type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
+          <button type="button" @click.prevent="mudarSenha" :disabled="isLoading">{{ isLoading ? 'Carregando...' : 'Mudar Senha'}}</button>
         </form>
       </div>
     </div>
@@ -258,11 +259,26 @@
         </div>
       </div>
     </div>
+
+    <div class="overlay-bloqueio" v-if="showToast">
+      <div v-if="toastMessage && !errorMessage" class="mensagem-salvo">
+        {{ toastMessage }}
+      </div>
+      <div
+        style="background-color: #b30d14"
+        v-if="toastMessage && errorMessage"
+        class="mensagem-salvo"
+      >
+        {{ toastMessage }}
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script>
 import { auth } from '../firebaseConfig.js'
+import { sendPasswordResetEmail } from 'firebase/auth'
 import { getToken } from '../services/token.js'
 import { signOut } from 'firebase/auth'
 import logo from '@/assets/icons/logo.png'
@@ -319,6 +335,9 @@ export default {
       originalTitle: '',
       isLoading: false,
       isSuperAdmin: false,
+      showToast: false,
+      toastMessage: '',
+      errorMessage: false,
     }
   },
   methods: {
@@ -483,6 +502,7 @@ export default {
       }
     },
     async salvarPerfil() {
+      this.isLoading = true;
       try{
         const token = await getToken();
 
@@ -501,7 +521,26 @@ export default {
         this.getUserInfo()
 
       } catch (error) {
+        if(error.response && error.response.status === 409 && error.response.data.error.includes('email')){
+          this.toast('Email já está em uso por outro usuário.', true)
+          return;
+        }
+        this.toast('Erro ao salvar perfil.', true)
         console.error('Erro ao salvar perfil:', error)
+      } finally {
+        this.isLoading = false
+      }
+    },
+    async mudarSenha() {
+      this.isLoading = true
+      try {
+        await sendPasswordResetEmail(auth, this.userData.email)
+        this.toast('Link de troca de senha enviado!', false)
+      } catch (error) {
+        this.toast('Erro ao enviar link de troca de senha.', true)
+        console.error('Erro ao enviar link de troca de senha', error)
+      } finally {
+        this.isLoading = false
       }
     },
     atualizarAvatar(event) {
@@ -530,7 +569,19 @@ export default {
         document.title = this.originalTitle
       }
 
-    }
+    },
+    toast(message, isError) {
+      this.toastMessage = message
+      this.showToast = true
+      if (isError) {
+        this.errorMessage = true
+      }
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+        this.errorMessage = false
+      }, 2500)
+    },
   },
   created() {
     this.originalTitle = document.title;

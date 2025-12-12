@@ -568,6 +568,10 @@ export default {
         this.toast(`${response.data.result}`, false)
 
       } catch(error){
+        if(error.response && error.response.status === 403 || error.response.status === 401){
+          this.toast('Você não tem permissão para realizar esta ação.', true)
+          return;
+        }
         this.toast('Erro ao executar o SQL no sandbox, tente novamente mais tarde.', true)
         console.error('Error ao executar o SQL no sandbox', error);
       } finally {
