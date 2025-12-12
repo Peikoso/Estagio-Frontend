@@ -5,28 +5,26 @@
         <h3>Gestão de Usuários</h3>
         <p>Gerenciamento e criação de usuários</p>
       </div>
-      <button @click="novoUsuarioModal = true">Novo Usuário</button>
+      <div>
+        <button @click="novoUsuarioModal = true">Novo Usuário</button>
+      </div>
     </div>
     <div class="view-container">
       <div class="filtro-container">
-        <label class="filtro-label" for="filtro">Filtrar Nome</label>
+        <label class="filtro-label" for="filtro">Filtrar Usuários</label>
         <input type="text" id="filtro" v-model="filtroNome" placeholder="Digite o nome do usuário">
-        <label class="filtro-label" for="filtro">Filtrar Matricula</label>
         <input type="text" id="filtro" v-model="filtroMatricula" placeholder="Digite a matrícula">
-        <label class="filtro-label" for="filtro">Filtrar Role</label>
         <select id="filtroRole" v-model="filtroRole">
-          <option :value="null" selected>Todos</option>
+          <option :value="null" selected>Roles</option>
           <option v-for="(role, index) in roles" :key="index" :value="role.id">{{ role.name }}</option>
         </select>
-        <label class="filtro-label" for="filtro">Filtrar Profile</label>
         <select id="filtroProfile" v-model="filtroProfile">
-          <option :value="null" selected>Todos</option>
+          <option :value="null" selected>Perfis</option>
           <option value="admin">Admin</option>
           <option value="operator">Operator</option>
           <option value="viewer">Viewer</option>
         </select>
-
-        <span class="filtro-label">Pendente</span>
+        <span class="filtro-label" style="margin-left: auto;">Pendente</span>
         <label class="switch">
           <input
             type="checkbox"
@@ -34,7 +32,6 @@
           />
           <span class="slider"></span>
         </label>
-
       </div>
       <div class="table-responsive">
         <table>

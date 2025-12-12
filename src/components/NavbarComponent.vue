@@ -146,7 +146,7 @@
       <div class="modal-content">
         <button
           class="close-btn"
-          @click="perfilModal = false; getUserInfo()">&times;
+          @click="perfilModal = false; getUserInfo(); savePictureButton=false">&times;
         </button>
         <h2>Perfil</h2>
         <form @submit.prevent="salvarPerfil">
@@ -157,9 +157,11 @@
             </div>
             <div class="col">
               <div class="avatar-container">
-                <img :src="userData.foto || avatarDefault" class="foto-perfil" />
+                <img v-if="!savePictureButton" :src="`${apiBaseUrl}/uploads/${userData.foto}`" class="foto-perfil" />
+                <img v-if="savePictureButton" :src="userData.foto" class="foto-perfil" />
                 <label for="file-avatar" class="editar-overlay">Editar</label>
                 <input id="file-avatar" type="file" @change="atualizarAvatar" accept="image/*" />
+                <button v-if="savePictureButton" type="button" @click="savePicture">Salvar Foto</button>
               </div>
             </div>
           </div>
@@ -190,8 +192,7 @@
             </span>
           </div>
 
-          <label for="telefone">Telefone</label>
-          <input type="number" id="telefone" v-model="userData.telefone"/>
+          <input type="text" id="telefone" v-model="formattedPhone" placeholder="(99) 99999-9999"/>
 
           <button type="submit" :disabled="isLoading">{{ isLoading ? 'Salvando...' : 'Salvar'}}</button>
           <button type="button" @click.prevent="mudarSenha" :disabled="isLoading">{{ isLoading ? 'Carregando...' : 'Mudar Senha'}}</button>
@@ -283,10 +284,9 @@ import { getToken } from '../services/token.js'
 import { signOut } from 'firebase/auth'
 import logo from '@/assets/icons/logo.png'
 import notificacaoImg from '@/assets/icons/notifications.svg'
-import avatarDefault from '@/assets/icons/avatar-default.svg'
 import help from '@/assets/icons/help.svg'
 import api from '@/services/api.js'
-import { formatDate } from '@/services/format.js'
+import { formatDate, formatPhone } from '@/services/format.js'
 import { requestNotificationPermission } from '@/services/fcm.js'
 import { VerifySuperAdmin } from '@/services/auth.js'
 
@@ -305,6 +305,7 @@ export default {
         roles: [],
         foto: '',
       },
+      selectedAvatarFile: null,
       preferencia: {
         startTime: '00:00:00',
         endTime: '00:00:00',
@@ -326,7 +327,7 @@ export default {
       helpModal: false,
       dropdownOpen: false,
       sidebarAberta: false,
-      avatarDefault,
+      avatarDefault: 'avatar-default.svg',
       logo,
       notificacaoImg,
       help,
@@ -338,11 +339,15 @@ export default {
       showToast: false,
       toastMessage: '',
       errorMessage: false,
+      formattedPhone: '',
+      savePictureButton: false,
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
     }
   },
   methods: {
     formatDate,
     VerifySuperAdmin,
+    formatPhone,
     async getUserInfo() {
       if (auth.currentUser && !auth.currentUser.isAnonymous) {
         const token = await getToken();
@@ -362,6 +367,8 @@ export default {
         this.userData.perfil = response.data.profile
         this.userData.roles = response.data.roles
         this.userData.foto = response.data.picture || this.avatarDefault
+
+        this.formattedPhone = this.formatPhone(this.userData.telefone);
 
         this.isSuperAdmin = VerifySuperAdmin(response.data);
 
@@ -509,7 +516,7 @@ export default {
         const data = {
           name: this.userData.nome,
           email: this.userData.email,
-          phone: this.userData.telefone,
+          phone: this.formattedPhone.replace(/\D/g, ""),
           picture: null,
         };
 
@@ -544,14 +551,51 @@ export default {
       }
     },
     atualizarAvatar(event) {
+      this.savePictureButton = true
       const file = event.target.files[0]
       if (file) {
+        this.selectedAvatarFile = file;
+
         const reader = new FileReader()
         reader.onload = (e) => {
           this.userData.foto = e.target.result
         }
         reader.readAsDataURL(file)
       }
+    },
+    async savePicture() {
+      if(!this.userData.foto || this.userData.foto === this.avatarDefault) {
+        this.toast('Nenhuma foto selecionada.', true)
+        this.savePictureButton = false
+        return;
+      }
+
+      try{
+        const token = await getToken();
+
+        const formData = new FormData()
+        formData.append('picture', this.selectedAvatarFile)
+
+        const response = await api.patch('/users/me/picture', formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        this.userData.foto = response.data.picture
+        this.toast('Foto salva com sucesso!', false)
+      } catch (error) {
+        if(error.response && error.response.status === 422) {
+          this.toast('Formato de imagem ou nome de imagem inválido.', true)
+          return;
+        }
+        this.toast('Erro ao salvar foto.', true)
+        console.error('Erro ao salvar foto:', error)
+      } finally {
+        this.savePictureButton = false
+      }
+
     },
     startPolling() {
       this.pollingInterval = setInterval(() => {
@@ -594,6 +638,11 @@ export default {
   beforeUnmount() {
     clearInterval(this.pollingInterval)
     this.clearUserInfo()
+  },
+  watch: {
+    "formattedPhone"(newValue) {
+      this.formattedPhone = this.formatPhone(newValue);
+    }
   },
 }
 </script>

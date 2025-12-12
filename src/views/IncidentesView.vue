@@ -28,6 +28,14 @@
             {{ role.name }}
           </option>
         </select>
+        <span class="filtro-label" style="margin-left: auto;">Meus Incidentes</span>
+        <label class="switch">
+          <input
+          type="checkbox"
+          v-model="filtrarMeusIncidentes"
+          />
+          <span class="slider"></span>
+        </label>
       </div>
       <div class="table-responsive">
         <h2 v-if="incidentes.length == 0">Nenhum Incidente Registrado</h2>
@@ -222,6 +230,7 @@ export default {
       filtroStatus: null,
       filtroPrioridade: null,
       filtroRole: null,
+      filtrarMeusIncidentes: false,
       incidenteModal: false,
       comentarioModal: false,
       reexecuteModal: false,
@@ -261,6 +270,7 @@ export default {
           ruleName: this.filtroRegra || null,
           priority: this.filtroPrioridade || null,
           roleId: this.filtroRole || null,
+          ownIncidents: this.filtrarMeusIncidentes ? true : null,
           page: this.page,
           perPage: this.perPage,
         }
@@ -574,6 +584,9 @@ export default {
       this.applyFilters()
     },
     filtroStatus() {
+      this.applyFilters()
+    },
+    filtrarMeusIncidentes() {
       this.applyFilters()
     },
   },

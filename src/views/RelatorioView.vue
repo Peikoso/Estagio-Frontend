@@ -101,7 +101,7 @@
           <br><br>
           <h3>{{ metrics.incidentes_escalonados ?? 'N/A' }}</h3>
           <br><br>
-          <p>Incidentes que precisaram de escalonamento manual</p>
+          <p>Incidentes que precisaram de reescalonamento no período</p>
         </div>
       </div>
       <div class="small-view-container">
@@ -128,7 +128,7 @@
           <br><br>
           <h3>{{ metrics.incidentes_abertos ?? 'N/A' }}</h3>
           <br><br>
-          <p>Incidentes atualmente em status OPEN</p>
+          <p>Incidentes em status OPEN no período</p>
         </div>
       </div>
     </div>

@@ -21,7 +21,7 @@
   margin: 10px;
   padding: 16px;
   display: block;
-  max-height: 80vh;
+  max-height: 100vh;
   border: 1px solid #ccc;
   border-radius: 15px;
   overflow-x: auto; /* Scroll horizontal se tabela for grande */
