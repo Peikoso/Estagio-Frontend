@@ -155,7 +155,8 @@ export default {
         notificacoes_enviadas: 0,
         regras_ativas: 0,
         incidentes_abertos: 0,
-      }
+      },
+      isLoading: false,
     };
   },
   methods: {
@@ -164,13 +165,10 @@ export default {
       try{
         const token = await getToken();
 
-        console.log('Buscando métricas de', startDate, 'a', endDate);
         const response = await api.get(`/metrics/${startDate}/${endDate}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        console.log('Métricas recebidas:', response.data);
 
         this.metrics = response.data;
       } catch (error) {

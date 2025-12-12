@@ -222,7 +222,6 @@ export default {
 
         this.incidentes = response.data
 
-        console.log("Incidentes obtidos:", this.incidentes);
       } catch(error){
         console.error("Erro ao obter incidentes:", error);
       }
