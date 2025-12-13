@@ -50,7 +50,8 @@
             <tr v-for="user in users" :key="user.id">
               <td data-label="">
                 <div class="avatar-container" style="height: 50px; width: 50px; margin: 0;">
-                  <img :src="user.foto || avatarDefault" class="foto-perfil" />
+                  <img v-if="user.picture" :src="`${apiBaseUrl}/uploads/${user.picture}`" class="foto-perfil" />
+                  <img v-else :src="`${apiBaseUrl}/uploads/${avatarDefault}`" class="foto-perfil" />
                 </div>
               </td>
               <td data-label="Nome">{{ user.name }}</td>
@@ -80,6 +81,9 @@
           <button @click="pagSeguinte()">Seguinte</button>
         </div>
       </div>
+    </div>
+    <div style="align-items: center; display: flex; justify-content: center;">
+      <button @click="refresh()" :disabled="isLoading">Recarregar</button>
     </div>
 
     <div class="modal" v-if="novoUsuarioModal">
@@ -152,7 +156,6 @@
 
 <script>
 import api from '@/services/api';
-import avatarDefault from '@/assets/icons/avatar-default.svg';
 import { getToken } from '@/services/token.js';
 
 export default {
@@ -175,7 +178,8 @@ export default {
       novoUsuarioModal: false,
       modoEdicao: false,
       deleteModal: false,
-      avatarDefault,
+      avatarDefault: 'avatar-default.svg',
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
       page: 1,
       perPage: 5,
       filtroNome: '',
@@ -406,6 +410,19 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
+    async refresh() {
+      this.isLoading = true;
+
+      try{
+        await this.getRoles();
+        await this.getAllUsers();
+      } catch (error) {
+        console.error('Erro ao recarregar usuários:', error);
+      } finally {
+        this.isLoading = false;
+      }
+
+    }
   },
   created() {
     this.getRoles();

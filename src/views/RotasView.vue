@@ -65,6 +65,9 @@
         </div>
       </div>
     </div>
+    <div style="align-items: center; display: flex; justify-content: center;">
+      <button @click="refresh()" :disabled="isLoading">Recarregar</button>
+    </div>
 
     <div class="modal" v-if="novaRotaModal">
       <div class="modal-content" style="min-height: 800px; max-width: 100vh; overflow-y: auto;">
@@ -102,7 +105,8 @@
                   <tr v-for="user in users" :key="user.id" @click="selectUser(user)">
                     <td data-label="">
                       <div class="avatar-container" style="height: 50px; width: 50px; margin: 0;">
-                        <img :src="user.foto || avatarDefault" class="foto-perfil" />
+                        <img v-if="user.picture" :src="`${apiBaseUrl}/uploads/${user.picture}`" class="foto-perfil" />
+                        <img v-else :src="`${apiBaseUrl}/uploads/${avatarDefault}`" class="foto-perfil" />
                       </div>
                     </td>
                     <td data-label="Nome">{{ user.name }}</td>
@@ -178,7 +182,6 @@
 import api from '@/services/api';
 import { getToken } from '@/services/token';
 import { formatDate, formatToInput } from '@/services/format';
-import avatarDefault from '@/assets/icons/avatar-default.svg';
 
 export default {
   name: 'RotasView',
@@ -207,7 +210,8 @@ export default {
       page: 1,
       perPage: 5,
       isLoading: false,
-      avatarDefault,
+      avatarDefault: 'avatar-default.svg',
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
       showToast: false,
       toastMessage: '',
       errorMessage: false,
@@ -448,6 +452,18 @@ export default {
         this.toastMessage = ''
         this.errorMessage = false
       }, 2500)
+    },
+    async refresh() {
+      this.isLoading = true
+      try{
+        await this.getEscalas()
+        await this.getRoles()
+        await this.getUsers()
+      } catch (error) {
+        console.error('Erro ao atualizar dados:', error);
+      } finally {
+        this.isLoading = false
+      }
     },
   },
   created() {

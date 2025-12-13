@@ -72,6 +72,9 @@
         </div>
       </div>
     </div>
+    <div style="align-items: center; display: flex; justify-content: center;">
+      <button @click="refresh()" :disabled="isLoading">Recarregar</button>
+    </div>
 
     <div class="modal" v-if="regraModal">
       <div class="modal-content">
@@ -606,6 +609,19 @@ export default {
         this.page = 1;
         this.getRules();
       }, 500); // 500ms = meio segundo
+    },
+    async refresh() {
+      this.isLoading = true;
+      
+      try{
+        await this.getCurrentUser();
+        await this.getRoles();
+        await this.getRules();
+      } catch(error){
+        console.error('Erro ao recarregar os dados:', error);
+      } finally {
+        this.isLoading = false;
+      }
     },
   },
   created() {

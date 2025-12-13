@@ -90,23 +90,23 @@
         </button>
         <div class="modal-details">
           <h4>Detalhes do Incidente</h4>
-          <p><strong>ID do Incidente:</strong> {{ incidente.id }}</p>
-          <p><strong>Criado em:</strong> {{ formatDate(incidente.createdAt) }}</p>
-          <p><strong>Regra:</strong> {{ incidente.rule?.name ?? 'N/A' }}</p>
-          <p><strong>Prioridade:</strong> {{ formatPriority(incidente.priority) }}</p>
-          <p><strong>Status:</strong> {{ incidente.status }}</p>
-          <p><strong>Ack em:</strong> {{ formatDate(incidente.ackAt) }}</p>
-          <p><strong>Closed em:</strong> {{ formatDate(incidente.closedAt) }}</p>
-          <p><strong>Usuário Designado:</strong> {{ incidente.assignedUserName }}</p>
+          <p><strong>ID do Incidente:</strong> {{ incidente?.id }}</p>
+          <p><strong>Criado em:</strong> {{ formatDate(incidente?.createdAt) }}</p>
+          <p><strong>Regra:</strong> {{ incidente?.rule?.name ?? 'N/A' }}</p>
+          <p><strong>Prioridade:</strong> {{ formatPriority(incidente?.priority) }}</p>
+          <p><strong>Status:</strong> {{ incidente?.status }}</p>
+          <p><strong>Ack em:</strong> {{ formatDate(incidente?.ackAt) }}</p>
+          <p><strong>Closed em:</strong> {{ formatDate(incidente?.closedAt) }}</p>
+          <p><strong>Usuário Designado:</strong> {{ incidente?.assignedUserName }}</p>
         </div>
         <div style="justify-content: center; display: flex; margin: 10px">
           <button
             :disabled="user.profile === 'viewer'"
             class="button-status"
-            :class="buttonStatus(incidente.status)"
+            :class="buttonStatus(incidente?.status)"
             @click="statusIncidente(incidente)"
           >
-            {{ incidente.status }}
+            {{ incidente?.status }}
           </button>
           <button
             :disabled="user.profile === 'viewer'"
@@ -133,8 +133,8 @@
         <div class="modal-details">
           <h2>Ações do Incidente</h2>
           <div class="table-responsive">
-            <p v-if="incidentLogs.length == 0"><strong>Nenhuma Ação Registrada</strong></p>
-            <table v-if="incidentLogs.length >= 1">
+            <p v-if="incidentLogs?.length == 0"><strong>Nenhuma Ação Registrada</strong></p>
+            <table v-if="incidentLogs?.length >= 1">
               <thead>
                 <tr>
                   <th>De</th>
@@ -146,11 +146,11 @@
               </thead>
               <tbody>
                 <tr v-for="log in incidentLogs" :key="log.id">
-                  <td data-label="De">{{ log.previousStatus }}</td>
-                  <td data-label="Para">{{ log.currentStatus }}</td>
-                  <td data-label="Comentário">{{ log.comment }}</td>
-                  <td data-label="Usuário">{{ log.actionUser.name ?? '' }}</td>
-                  <td data-label="Feita Em">{{ formatDate(log.createdAt) }}</td>
+                  <td data-label="De">{{ log?.previousStatus }}</td>
+                  <td data-label="Para">{{ log?.currentStatus }}</td>
+                  <td data-label="Comentário">{{ log?.comment }}</td>
+                  <td data-label="Usuário">{{ log?.actionUser?.name ?? '' }}</td>
+                  <td data-label="Feita Em">{{ formatDate(log?.createdAt) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -314,13 +314,13 @@ export default {
     async detalhesIncidente(incidenteId) {
       this.incidente = await this.getIncidenteById(incidenteId)
 
-      if (this.incidente.assignedUserId) {
+      if (this.incidente?.assignedUserId) {
         this.incidente.assignedUserName = await this.getUserName(this.incidente.assignedUserId)
       }
 
-      this.incidentLogs = await this.getIncidentLogs(this.incidente.id)
+      this.incidentLogs = await this.getIncidentLogs(this.incidente?.id)
 
-      await this.getEligibleUsers(this.incidente.id)
+      await this.getEligibleUsers(this.incidente?.id)
     },
 
     async getIncidenteById(id) {
@@ -398,13 +398,14 @@ export default {
       } catch (error) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           this.toast('Você não tem permissão para realizar esta ação.', true)
+          this.reexecuteModal = false
           return;
         }
         this.toast('Erro ao reexecutar incidente. Tente novamente.', true)
-
+        this.reexecuteModal = false
       } finally {
         await this.getIncidents()
-        await this.detalhesIncidente(this.incidente.id)
+        await this.detalhesIncidente(this.incidente?.id)
         this.isLoading = false
       }
 
@@ -451,7 +452,7 @@ export default {
       } finally {
         this.limparComentario()
         await this.getIncidents()
-        await this.detalhesIncidente(this.incidente.id)
+        await this.detalhesIncidente(this.incidente?.id)
         this.comentarioModal = false
         this.isLoading = false
       }

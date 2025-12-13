@@ -33,6 +33,9 @@
       </div>
     </div>
   </div>
+  <div style="align-items: center; display: flex; justify-content: center;">
+    <button @click="refresh()" :disabled="isLoading">Recarregar</button>
+  </div>
 
   <div class="modal" v-if="channelModal">
     <div class="modal-content">
@@ -213,6 +216,17 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
+    async refresh() {
+      this.isLoading = true
+
+      try {
+        await this.getchannels()
+      } catch (error) {
+        console.error('Erro ao recarregar canais:', error)
+      } finally {
+        this.isLoading = false
+      }
+    }
   },
   async created() {
     await this.getchannels()

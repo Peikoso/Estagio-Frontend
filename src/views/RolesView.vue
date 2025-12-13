@@ -48,6 +48,9 @@
       </div>
     </div>
   </div>
+  <div style="align-items: center; display: flex; justify-content: center;">
+    <button @click="refresh()" :disabled="isLoading">Recarregar</button>
+  </div>
 
   <div class="modal" v-if="roleModal">
     <div class="modal-content">
@@ -277,6 +280,17 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
+    async refresh() {
+      this.isLoading = true
+      
+      try{
+        await this.getRoles()
+      } catch (error) {
+        console.error('Erro ao recarregar:', error)
+      } finally {
+        this.isLoading = false
+      }
+    }
   },
   created() {
     this.getRoles()
