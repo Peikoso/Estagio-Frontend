@@ -149,7 +149,7 @@
 import api from '@/services/api'
 import { getToken } from '@/services/token'
 import { formatDate, formatPriority } from '@/services/format'
-import { socket } from '@/services/socket'
+import { createSocket, getSocket } from '@/services/socket'
 
 export default {
   name: 'DashboardView',
@@ -354,16 +354,18 @@ export default {
       }
     },
   },
-  created() {
-    this.getCurrentUser()
-    this.getIncidents()
-    this.getRoles()
-    this.getMetrics()
+  async created() {
+    await this.getCurrentUser()
+    await this.getIncidents()
+    await this.getRoles()
+    await this.getMetrics()
 
-
+    await createSocket()
+    const socket = await getSocket();
     socket.on('incidentUpdated', this.handleIncidentUpdated)
   },
-  beforeUnmount() {
+  async beforeUnmount() {
+    const socket = await getSocket();
     socket.off('incidentUpdated', this.handleIncidentUpdated)
   },
   watch: {

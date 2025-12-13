@@ -289,6 +289,7 @@ import api from '@/services/api.js'
 import { formatDate, formatPhone } from '@/services/format.js'
 import { requestNotificationPermission } from '@/services/fcm.js'
 import { VerifySuperAdmin } from '@/services/auth.js'
+import { createSocket, getSocket } from '@/services/socket.js'
 
 export default {
   name: 'NavbarComponent',
@@ -331,8 +332,6 @@ export default {
       logo,
       notificacaoImg,
       help,
-      pollingTime: 5000, // 5 segundos
-      pollingInterval: null,
       originalTitle: '',
       isLoading: false,
       isSuperAdmin: false,
@@ -502,7 +501,7 @@ export default {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        this.getNotifications()
+        await this.getNotifications()
 
       } catch (error) {
         console.error('Erro ao marcar notificação como lida:', error)
@@ -597,12 +596,6 @@ export default {
       }
 
     },
-    startPolling() {
-      this.pollingInterval = setInterval(() => {
-        this.getNotifications()
-        this.setTabNotifications()
-      }, this.pollingTime)
-    },
     setTabNotifications() {
       const notificationCount = this.notificacoes.length
 
@@ -626,17 +619,31 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
+    async handleNotifications() {
+      try{
+        await this.getNotifications();
+        this.setTabNotifications();
+
+      } catch (error) {
+        console.error('Erro ao atualizar incidente via WebSocket. Tente novamente.', error)
+      }
+    },
   },
-  created() {
+  async created() {
     this.originalTitle = document.title;
-    this.getUserInfo()
-    this.getCanais()
-    this.getNotifications()
-    this.startPolling()
-    requestNotificationPermission()
+    await this.getUserInfo()
+    await this.getCanais()
+    await this.getNotifications()
+    await requestNotificationPermission()
+
+
+    await createSocket()
+    const socket = await getSocket();
+    socket.on('incidentUpdated', this.handleNotifications)
   },
-  beforeUnmount() {
-    clearInterval(this.pollingInterval)
+  async beforeUnmount() {
+    const socket = await getSocket();
+    socket.off('incidentUpdated', this.handleNotifications)
     this.clearUserInfo()
   },
   watch: {
