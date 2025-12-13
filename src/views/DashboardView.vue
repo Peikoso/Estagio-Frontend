@@ -149,6 +149,7 @@
 import api from '@/services/api'
 import { getToken } from '@/services/token'
 import { formatDate, formatPriority } from '@/services/format'
+import { socket } from '@/services/socket'
 
 export default {
   name: 'DashboardView',
@@ -181,8 +182,6 @@ export default {
       toastMessage: '',
       errorMessage: false,
       isLoading: false,
-      pollingTime: 5000, // 5 segundos
-      pollingInterval: null,
       timer: null,
     }
   },
@@ -345,11 +344,14 @@ export default {
         this.errorMessage = false
       }, 2500)
     },
-    startPolling() {
-      this.pollingInterval = setInterval(() => {
-        this.getIncidents()
-        this.getMetrics()
-      }, this.pollingTime)
+    async handleIncidentUpdated() {
+      try{
+        await this.getIncidents();
+        await this.getMetrics();
+
+      } catch (error) {
+        console.error('Erro ao atualizar incidente via WebSocket. Tente novamente.', error)
+      }
     },
   },
   created() {
@@ -357,10 +359,12 @@ export default {
     this.getIncidents()
     this.getRoles()
     this.getMetrics()
-    this.startPolling()
+
+
+    socket.on('incidentUpdated', this.handleIncidentUpdated)
   },
   beforeUnmount() {
-    clearInterval(this.pollingInterval);
+    socket.off('incidentUpdated', this.handleIncidentUpdated)
   },
   watch: {
     filtroRegra() {

@@ -202,6 +202,7 @@
 import api from '@/services/api'
 import { getToken } from '@/services/token'
 import { formatDate, formatPriority } from '@/services/format'
+import { socket } from '@/services/socket'
 
 export default {
   name: 'IncidentesView',
@@ -240,8 +241,6 @@ export default {
       toastMessage: '',
       errorMessage: false,
       isLoading: false,
-      pollingTime: 5000, // 5 segundos
-      pollingInterval: null,
       timer: null,
     }
   },
@@ -546,21 +545,28 @@ export default {
         this.getIncidents()
       }, 500) // 500ms = meio segundo
     },
-    startPolling() {
-      this.pollingInterval = setInterval(() => {
-        this.getIncidents()
-      }, this.pollingTime)
+    async handleIncidentUpdated() {
+      try{
+        await this.getIncidents();
+
+        if(this.incidenteModal && this.incidente?.id) {
+          await this.detalhesIncidente(this.incidente?.id);
+        }
+
+      } catch (error) {
+        console.error('Erro ao atualizar incidente via WebSocket. Tente novamente.', error)
+      }
     },
   },
   created() {
     this.getCurrentUser()
     this.getIncidents()
     this.getAllRoles()
-    this.startPolling()
 
+    socket.on('incidentUpdated', this.handleIncidentUpdated)
   },
   beforeUnmount() {
-    clearInterval(this.pollingInterval)
+    socket.off('incidentUpdated', this.handleIncidentUpdated)
   },
   watch: {
     '$route.query.incidenteId': {
